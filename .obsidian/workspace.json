@@ -1,0 +1,220 @@
+{
+  "main": {
+    "id": "7c54595ee7799243",
+    "type": "split",
+    "children": [
+      {
+        "id": "453a1ba4a11c6aa9",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "54503c01cb5f7547",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "CheckPoint/1. Long Term Memory User/Report Company Vụ nổ Mem0 và vụ nổ FACT - 2 contribute QUAN TRỌNG.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Report Company Vụ nổ Mem0 và vụ nổ FACT - 2 contribute QUAN TRỌNG"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "43f55b52837961bd",
+    "type": "split",
+    "children": [
+      {
+        "id": "645fe522ec9e97cf",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "0b34b266986ea2ba",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "30621eac6c48f226",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "f95015a03a5287b2",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "513dcfe41cede9f5",
+    "type": "split",
+    "children": [
+      {
+        "id": "72c4679a32db9fbb",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "5b21deb38b22027d",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "CheckPoint/1. Long Term Memory User/Report Company Vụ nổ Mem0 và vụ nổ FACT - 2 contribute QUAN TRỌNG.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Report Company Vụ nổ Mem0 và vụ nổ FACT - 2 contribute QUAN TRỌNG"
+            }
+          },
+          {
+            "id": "c0928f724b6bc89f",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "CheckPoint/1. Long Term Memory User/Report Company Vụ nổ Mem0 và vụ nổ FACT - 2 contribute QUAN TRỌNG.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Report Company Vụ nổ Mem0 và vụ nổ FACT - 2 contribute QUAN TRỌNG"
+            }
+          },
+          {
+            "id": "824565d7ac4db2b2",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "6a773956afee5aec",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "CheckPoint/1. Long Term Memory User/Report Company Vụ nổ Mem0 và vụ nổ FACT - 2 contribute QUAN TRỌNG.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Report Company Vụ nổ Mem0 và vụ nổ FACT - 2 contribute QUAN TRỌNG"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false
+    }
+  },
+  "active": "0b34b266986ea2ba",
+  "lastOpenFiles": [
+    "HippoRAG/README.md",
+    "HippoRAG/HippoRAG - 05042025.md",
+    "HippoRAG/HippoRAG - 05042025.mmd",
+    "HippoRAG/Summary.md",
+    "HippoRAG",
+    "CheckPoint/1. Long Term Memory User/Mini Project Graduation School.md",
+    "CheckPoint/1. Long Term Memory User/Report Company Vụ nổ Mem0 và vụ nổ FACT - 2 contribute QUAN TRỌNG.md",
+    "CheckPoint/1. Long Term Memory User/Read 2.3 base line - Retrieval Augmented Generation for Dialog Modeling 1. Dataset và cách đánh giá 2. Vấn đề Method đi giải quyết.md",
+    "CheckPoint/1. Long Term Memory User/Read 2 - GOOD - LONGMEMEVAL - Đơn giản hơn Zep Khá Baseline - Benchmarking Chat Assistants on Long-Term Interactive Memory - Dataset của bài Zep nên mình tìm được bài này.md",
+    "CheckPoint/1. Long Term Memory User/Read 2.1 GOOD - Reflective Memory Management - Bài phát triển từ bài LongMemEval  - Read2.4_2503.08026v1.pdf.md",
+    "CheckPoint/1. Long Term Memory User/Read 2.1 Memory Bank.md",
+    "CheckPoint/1. Long Term Memory User/AI Agent note.md",
+    "CheckPoint/2_07042025_HippoRAG",
+    "CheckPoint/1. Long Term Memory User/Report - 1 số câu hỏi.md",
+    "CheckPoint/Problem.md",
+    "CheckPoint/Nghe các bạn.md",
+    "CheckPoint/GenSpark.md",
+    "CheckPoint/AI Agent.md",
+    "CheckPoint/1. Long Term Memory User/attachments/Pasted image 20250322071142.png",
+    "CheckPoint/1. Long Term Memory User/attachments/Pasted image 20250322063052.png",
+    "CheckPoint/3. Dự án FLATFORM - BUILD GAME/attachments/Pasted image 20250409102338.png",
+    "CheckPoint/1. Long Term Memory User/attachments/Pasted image 20250322060614.png",
+    "CheckPoint/1. Long Term Memory User/attachments/Pasted image 20250322054315.png",
+    "CheckPoint/attachments/Pasted image 20250322054143.png",
+    "CheckPoint/attachments/Pasted image 20250312154239.png",
+    "CheckPoint/attachments/Pasted image 20250312154228.png",
+    "CheckPoint/attachments/Pasted image 20250308081701.png",
+    "CheckPoint/attachments/Pasted image 20250308081643.png",
+    "CheckPoint/3. Dự án FLATFORM - BUILD GAME/Bài a Hiệp - AI pipeline product development.md",
+    "CheckPoint/1. Long Term Memory User/Read 3 - Graph.md",
+    "CheckPoint/3. Dự án FLATFORM - BUILD GAME/1. Tư duy Top 1% trong Phát triển Game với AI.md",
+    "CheckPoint/3. Dự án FLATFORM - BUILD GAME/attachments",
+    "CheckPoint/1. Long Term Memory User/Read 2.2  Relaited của LongMemEval và Reflective Memory Manager RMM.md",
+    "CheckPoint/1. Long Term Memory User/Read 2.0 CompAct Compressing Retrieved Documents Actively for Question Answering.md",
+    "CheckPoint/1. Long Term Memory User/Read 2' Dataset LongMemEval.md",
+    "CheckPoint/1. Long Term Memory User/Read 1 -  Zep - A Temporal Knowledge Graph Architecture for Agent Memory - 2501.13956.md",
+    "CheckPoint/1. Long Term Memory User/Read 0. Reference.md",
+    "CheckPoint/1. Long Term Memory User/attachments",
+    "CheckPoint/1. Long term Memory Architechture/0.4 Chốt đề tài 25032025.md",
+    "CheckPoint/1. Long term Memory Architechture/0.3 Chốt đề tài.md",
+    "CheckPoint/1. Long term Memory Architechture/0.2 Đồ án tiếp CƠ CHẾ QUẢN LÝ BỘ NHỚ - report 3_12032025 -.md",
+    "CheckPoint/attachments",
+    "CheckPoint/3. Dự án FLATFORM - BUILD GAME",
+    "CheckPoint/1. Long Term Memory User",
+    "CheckPoint/1. Long term Memory Architechture",
+    "CheckPoint"
+  ]
+}
