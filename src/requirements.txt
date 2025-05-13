@@ -1,0 +1,6 @@
+hipporag==2.0.0a3
+openai>=1.0.0
+numpy>=1.24.0
+torch>=2.0.0
+transformers>=4.30.0
+sentence-transformers>=2.2.0 

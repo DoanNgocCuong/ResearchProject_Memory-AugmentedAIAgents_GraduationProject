@@ -38,7 +38,7 @@ Ví dụ minh họa:
 3. Method – Kỹ thuật và Các Khái niệm Cốt lõi
 a. Offline Indexing – Xây dựng bộ nhớ
 1. OpenIE by LLM:
-  - Dùng LLM (ví dụ: Llama-3.3-70B-Instruct) để trích xuất các triple dạng (subject, predicate, object) từ từng đoạn văn.
+  - Dùng LLM (ví dụ: Llama-3.3-70B-Instruct) để trích xuất các triple dạng (subject, predicate, object) từ từng đoạn văn. - **Predicate** chính là nhãn (label) của cạnh (edge) kết nối giữa hai nút đó.
   - Ví dụ: "Marie Curie won two Nobel Prizes" → ("Marie Curie", "won", "Nobel Prizes"). (Có hướng)
 2. Knowledge Graph (KG) & Synonym Detection:
   - Các triple được kết hợp thành một KG, trong đó:
@@ -61,7 +61,8 @@ b. Online Retrieval & QA – Từ truy vấn đến câu trả lời
   - Ví dụ cụ thể:
     - Nếu một Phrase Node có similarity 0.72 → Effective weight = 0.72.
     - Một Passage Node với similarity 0.80 → Effective weight = 0.80 × 0.05 = 0.04.
-4. Personalized PageRank (PPR) Graph Search:
+3. Personalized PageRank (PPR) Graph Search:
+- Một bước PPR = **multi-hop reasoning một lần**: tín hiệu lan từ seed → qua quan hệ → trồi lên ở passage liên quan dù xa 2-3 cạnh.
   - Thuật toán PPR "lan tỏa" xác suất từ các seed node qua các liên kết trong KG.
   - Việc này không chỉ re-rank các node ban đầu mà còn kết nối các mối quan hệ đa bước (multi-hop), giúp tìm ra các đoạn văn có liên kết logic tốt nhất với truy vấn.
   - Ví dụ minh họa: Nếu các Phrase Nodes có trọng số cao liên kết mạnh với một Passage Node, PPR sẽ “nâng” trọng số của Passage Node đó, cho phép nó được xếp hạng cao.
@@ -79,6 +80,3 @@ HippoRAG (và phiên bản nâng cấp HippoRAG 2) mang lại một giải pháp
 - Đáp ứng các yêu cầu của multi-hop reasoning: Thông qua thuật toán Personalized PageRank, hệ thống có thể “reason” qua nhiều bước để tìm ra các đoạn văn liên kết và trả lời chính xác.
 - Tiết kiệm chi phí tính toán và tăng tính minh bạch: Không cần đưa toàn bộ dữ liệu vào LLM mỗi truy vấn, mà đã có quá trình retrieval có cấu trúc và khả năng ghi lại “đường reasoning” để dễ kiểm soát và debug.
 Báo cáo này cung cấp một cái nhìn tổng quát và chi tiết về cách HippoRAG hoạt động, từ quá trình xây dựng bộ nhớ (offline indexing) đến việc truy xuất và reasoning trực tuyến (online retrieval & QA). Hy vọng bản báo cáo này sẽ giúp cô giáo hiểu rõ hơn về tầm quan trọng của việc kết hợp giữa vector retrieval và graph reasoning để xây dựng hệ thống AI thông minh, linh hoạt và hiệu quả.
-
----
-Nếu có bất kỳ câu hỏi hay yêu cầu chỉnh sửa nào thêm, em sẵn sàng bổ sung. Chúc cô và em buổi báo cáo thành công!
