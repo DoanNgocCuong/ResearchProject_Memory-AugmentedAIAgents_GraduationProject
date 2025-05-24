@@ -11,7 +11,7 @@ from langchain.retrievers import EnsembleRetriever
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import LLMChainExtractor
 from langchain_openai import ChatOpenAI
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from dotenv import load_dotenv
 import os
 from .config import (
@@ -73,7 +73,7 @@ class DocumentRetriever:
                 url=qdrant_url,
                 api_key=qdrant_api_key,
                 collection_name=collection_name,
-                embedding_function=self.embeddings_model.embed_query
+                embeddings=self.embeddings_model
             )
         
         # Initialize retriever
@@ -82,37 +82,45 @@ class DocumentRetriever:
     def _initialize_retriever(self):
         """Initialize the appropriate retriever based on type."""
         if self.retriever_type == "vector":
+            if not self.vector_store:
+                raise ValueError("Vector store is required for vector retriever")
             self.retriever = VectorRetriever(
                 vector_store=self.vector_store,
                 k=self.k
             )
+            
         elif self.retriever_type == "bm25":
+            if not self.documents:
+                raise ValueError("Documents are required for BM25 retriever")
             self.retriever = BM25Retriever(
                 documents=self.documents,
                 k=self.k
             )
+            
         elif self.retriever_type == "hybrid":
+            if not self.vector_store or not self.documents:
+                raise ValueError("Both vector store and documents are required for hybrid retriever")
             self.retriever = HybridRetriever(
                 vector_store=self.vector_store,
                 documents=self.documents,
                 weights=self.hybrid_weights,
                 k=self.k
             )
+            
         elif self.retriever_type == "compression":
+            if not self.vector_store:
+                raise ValueError("Vector store is required for compression retriever")
             self.retriever = CompressionRetriever(
                 vector_store=self.vector_store,
                 k=self.k
             )
+            
         else:
-            raise ValueError(f"Unsupported retriever type: {self.retriever_type}")
+            raise ValueError(f"Unknown retriever type: {self.retriever_type}")
     
-    def retrieve_documents(
-        self,
-        query: str,
-        k: Optional[int] = None
-    ) -> List[Document]:
-        """Retrieve documents relevant to the query."""
-        return self.retriever.retrieve_documents(query, k)
+    def retrieve_documents(self, query: str) -> List[Document]:
+        """Retrieve documents using the selected retriever."""
+        return self.retriever.retrieve_documents(query)
 
 if __name__ == "__main__":
     """

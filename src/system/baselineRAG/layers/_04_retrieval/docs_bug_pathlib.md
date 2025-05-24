@@ -1,0 +1,2 @@
+- Thống nhất chung dùng pathlib cho đỡ bug. 
+- Bây giờ ko có absolute và relative gì nữa, dùng pathlib được ko 

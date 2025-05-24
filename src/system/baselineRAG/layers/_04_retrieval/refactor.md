@@ -328,3 +328,28 @@ Lợi ích của cách refactor này:
 5. **Linh hoạt:**
    - Có thể dễ dàng chuyển đổi giữa các loại vector store
    - Có thể kết hợp nhiều loại retriever khác nhau
+
+
+---
+
+
+# You are CTO, bình tĩnh để kiểm tra toàn bộ hệ thống để xem vấn đề thực sự nằm ở đâu. Kiểm tra thật kỹ mọi thứ để lên plan chi tiết rồi mới coding @_04_retrieval 
+
+```bash
+_04_retrieval/
+├── __init__.py          # Exports các class chính
+├── config.py            # Cấu hình mặc định
+├── retriever.py         # Class DocumentRetriever chính
+├── test_retriever.py    # Test cases
+├── retrievers/          # Các retriever cụ thể
+│   ├── __init__.py
+│   ├── base.py          # Base class cho retrievers
+│   ├── vector_retriever.py
+│   ├── bm25_retriever.py
+│   ├── hybrid_retriever.py
+│   └── compression_retriever.py
+└── vector_stores/       # Các vector store
+    ├── __init__.py
+    ├── base.py          # Base class cho vector stores
+    └── qdrant_store.py  # Qdrant implementation
+```

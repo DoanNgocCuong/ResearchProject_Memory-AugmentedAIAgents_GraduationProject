@@ -1,19 +1,20 @@
 """
-Retrieval module for finding relevant documents.
+Retrieval layer implementation.
 """
 
-from .retriever import DocumentRetriever
-from .vector_stores.qdrant_store import QdrantStore
 from .retrievers.vector_retriever import VectorRetriever
 from .retrievers.bm25_retriever import BM25Retriever
 from .retrievers.hybrid_retriever import HybridRetriever
-from .retrievers.compression_retriever import CompressionRetriever
+from .vector_stores.qdrant_store import QdrantStore
+from .config import QDRANT_URL, QDRANT_API_KEY, DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDINGS
 
 __all__ = [
-    'DocumentRetriever',
-    'QdrantStore',
     'VectorRetriever',
     'BM25Retriever',
     'HybridRetriever',
-    'CompressionRetriever'
+    'QdrantStore',
+    'QDRANT_URL',
+    'QDRANT_API_KEY',
+    'DEFAULT_COLLECTION_NAME',
+    'DEFAULT_EMBEDDINGS'
 ] 
