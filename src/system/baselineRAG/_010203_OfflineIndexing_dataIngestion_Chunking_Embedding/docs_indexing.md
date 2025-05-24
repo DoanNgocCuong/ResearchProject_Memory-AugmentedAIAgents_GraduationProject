@@ -225,3 +225,31 @@ point = qdrant.retrieve(
 )
 print(point)
 ```
+
+
+----
+
+
+# cách đánh idx này nếu mà point đã có thì sao 
+a) Ghi đè (Overwrite) - Cách hiện tại:
+Ưu điểm: Đơn giản, luôn có dữ liệu mới nhất
+Nhược điểm: Mất dữ liệu cũ
+
+
+
+Các cách khác nếu cần thì là: 
+
+Bỏ qua (Skip):
+Ưu điểm: Bảo toàn dữ liệu cũ
+Nhược điểm: Có thể bỏ sót cập nhật quan trọng
+c) Thêm mới (Append):
+Ưu điểm: Lưu được lịch sử
+Nhược điểm: Tốn bộ nhớ, khó quản lý
+d) Merge:
+Ưu điểm: Kết hợp được thông tin cũ và mới
+Nhược điểm: Phức tạp, cần logic merge rõ ràng
+Khuyến nghị:
+Nếu dữ liệu Excel thay đổi thường xuyên: Sử dụng cơ chế ghi đè
+Nếu cần lưu lịch sử: Tạo ID mới cho mỗi version
+Nếu cần merge dữ liệu: Implement cơ chế merge riêng
+Nếu cần kiểm soát version: Sử dụng versioning system
