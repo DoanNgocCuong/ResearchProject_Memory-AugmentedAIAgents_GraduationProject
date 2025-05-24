@@ -5,7 +5,8 @@ from vimqa import (
     create_contexts_gold,
     save_jsonl,
     load_json,
-    convert_to_vietnamese_readable
+    convert_to_vietnamese_readable,
+    create_excel_files
 )
 import os
 
@@ -31,12 +32,25 @@ def process_vimqa_file(input_file: str, output_dir: str, num_lines: int = None):
     # Add number of lines to filename if specified
     suffix = f"_{num_lines}" if num_lines is not None else ""
     
-    # Create and save corpus
-    save_jsonl(create_corpus(data), f"{output_dir}/corpus_{input_base}{suffix}.jsonl")
-    # Create and save QA pairs
-    save_jsonl(create_qa_pairs(data), f"{output_dir}/qa_pairs_{input_base}{suffix}.jsonl")
-    # Create and save contexts gold
-    save_jsonl(create_contexts_gold(data), f"{output_dir}/contexts_gold_{input_base}{suffix}.jsonl")
+    # Create data
+    corpus_data = create_corpus(data)
+    qa_data = create_qa_pairs(data)
+    contexts_data = create_contexts_gold(data)
+    
+    # Save JSONL files
+    save_jsonl(corpus_data, f"{output_dir}/corpus_{input_base}{suffix}.jsonl")
+    save_jsonl(qa_data, f"{output_dir}/qa_pairs_{input_base}{suffix}.jsonl")
+    save_jsonl(contexts_data, f"{output_dir}/contexts_gold_{input_base}{suffix}.jsonl")
+    
+    # Save Excel files
+    create_excel_files(
+        corpus_data=corpus_data,
+        qa_data=qa_data,
+        contexts_data=contexts_data,
+        output_dir=output_dir,
+        input_base=input_base,
+        suffix=suffix
+    )
 
     # Convert to Vietnamese readable JSON
     vi_json_path = os.path.join(output_dir, f"{input_base}{suffix}_vi.json")
@@ -56,9 +70,9 @@ def main():
         print(f"Successfully processed {args.input_file}")
         print(f"Output files created in {args.output_dir}:")
         suffix = f"_{args.num_lines}" if args.num_lines is not None else ""
-        print(f"- corpus_{args.input_file}{suffix}.jsonl")
-        print(f"- qa_pairs_{args.input_file}{suffix}.jsonl")
-        print(f"- contexts_gold_{args.input_file}{suffix}.jsonl")
+        print(f"- corpus_{args.input_file}{suffix}.jsonl and .xlsx")
+        print(f"- qa_pairs_{args.input_file}{suffix}.jsonl and .xlsx")
+        print(f"- contexts_gold_{args.input_file}{suffix}.jsonl and .xlsx")
     except Exception as e:
         print(f"Error processing file: {str(e)}")
 
