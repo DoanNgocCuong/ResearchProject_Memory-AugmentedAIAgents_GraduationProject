@@ -18,7 +18,7 @@ Các file đầu ra gồm:
 
 Đảm bảo cấu trúc thư mục như sau:
 ```
-src/datasets/
+src/datasets/scripts_data_processing
 ├── prepare_vimqa_data.py
 └── vimqa/
     ├── __init__.py
@@ -33,6 +33,8 @@ src/datasets/
 Giả sử bạn có file `train.json`:
 ```bash
 python prepare_vimqa_data.py train.json data/vimqa_processed
+python prepare_vimqa_data.py test.json vimqa_processed
+
 ```
 - Tham số 1: Đường dẫn file input (VD: `train.json`)
 - Tham số 2: Thư mục output (VD: `data/vimqa_processed`)
@@ -177,7 +179,7 @@ Nếu bạn có câu hỏi hoặc muốn đóng góp thêm, hãy tạo issue ho�
 ---
 
 
-Câu hỏi rất hay! Nếu bạn muốn triển khai hoặc huấn luyện hệ thống **retrieval-based QA** như RAG, FiD, DPR, ColBERT, hay QA inference theo kiểu "truy từ corpus", thì bạn **thực sự cần tách dữ liệu HotpotQA ra thành nhiều file riêng biệt**. Dưới đây là **bộ file tối thiểu nên chuẩn bị**, kèm theo **mục đích rõ ràng cho từng file**.
+Triển khai hoặc huấn luyện hệ thống **retrieval-based QA** như RAG, FiD, DPR, ColBERT, hay QA inference theo kiểu "truy từ corpus", thì bạn **thực sự cần tách dữ liệu HotpotQA ra thành nhiều file riêng biệt**. Dưới đây là **bộ file tối thiểu nên chuẩn bị**, kèm theo **mục đích rõ ràng cho từng file**.
 
 ---
 
