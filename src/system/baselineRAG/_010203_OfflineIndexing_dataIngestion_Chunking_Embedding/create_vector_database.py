@@ -112,12 +112,12 @@ def create_vector_database(excel_file_path, collection_name=None, start_idx=None
     # Apply start and end indices if provided
     if start_idx is not None:
         start_idx = max(0, start_idx)
-        texts = texts[start_idx:]
-        doc_ids = doc_ids[start_idx:]
-        titles = titles[start_idx:]
-        ids = ids[start_idx:]
+        texts = texts[start_idx:end_idx] if end_idx is not None else texts[start_idx:]
+        doc_ids = doc_ids[start_idx:end_idx] if end_idx is not None else doc_ids[start_idx:]
+        titles = titles[start_idx:end_idx] if end_idx is not None else titles[start_idx:]
+        ids = ids[start_idx:end_idx] if end_idx is not None else ids[start_idx:]
     
-    if end_idx is not None:
+    if end_idx is not None and start_idx is None:
         end_idx = min(len(texts), end_idx)
         texts = texts[:end_idx]
         doc_ids = doc_ids[:end_idx]
@@ -142,7 +142,13 @@ def create_vector_database(excel_file_path, collection_name=None, start_idx=None
     
     print(f"Getting embeddings for {len(texts)} documents...")
     # Get embeddings directly using the get_embedding function
-    vectors = [get_embedding(text) for text in texts]
+    vectors = []
+    for i, text in enumerate(texts):
+        print(f"Embedding document {i+1}/{len(texts)} (Excel row {ids[i]})...")
+        vector = get_embedding(text)
+        vectors.append(vector)
+        if (i + 1) % 10 == 0:  # Log progress every 10 documents
+            print(f"Progress: {i+1}/{len(texts)} documents embedded ({(i+1)/len(texts)*100:.1f}%)")
     
     print(f"Upserting to Qdrant collection: {collection_name}")
     upsert_to_qdrant(vectors, payloads, collection_name, ids=ids)

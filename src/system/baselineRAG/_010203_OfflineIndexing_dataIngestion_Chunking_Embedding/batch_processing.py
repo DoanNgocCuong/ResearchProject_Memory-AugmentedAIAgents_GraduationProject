@@ -58,13 +58,19 @@ def process_batch(excel_file, collection_name, start_idx, end_idx=None, batch_si
     logging.info(f"- Batch size: {batch_size}")
     logging.info(f"- Number of batches: {num_batches}")
     logging.info(f"- Wait time between batches: {wait_time} seconds")
+    logging.info(f"- Processing documents from Excel rows {start_idx + 1} to {end_idx}")
     
     for batch_num in range(num_batches):
         batch_start = start_idx + (batch_num * batch_size)
         batch_end = min(batch_start + batch_size, end_idx)
+        current_batch_size = batch_end - batch_start
         
-        logging.info(f"\nProcessing batch {batch_num + 1}/{num_batches}")
-        logging.info(f"Documents {batch_start} to {batch_end - 1}")
+        logging.info(f"\n{'='*50}")
+        logging.info(f"Processing batch {batch_num + 1}/{num_batches}")
+        logging.info(f"Documents {batch_start} to {batch_end - 1} (Excel rows {batch_start + 1} to {batch_end})")
+        logging.info(f"Current batch size: {current_batch_size} documents")
+        logging.info(f"Overall progress: {batch_num * batch_size}/{total_docs} documents ({(batch_num * batch_size)/total_docs*100:.1f}%)")
+        logging.info(f"{'='*50}\n")
         
         # Try up to 3 times with increasing wait times
         for attempt in range(3):
