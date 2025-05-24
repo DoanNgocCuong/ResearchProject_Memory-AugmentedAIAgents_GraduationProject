@@ -96,6 +96,10 @@ def create_vector_database(excel_file_path, collection_name=None, start_idx=None
     doc_ids = data["doc_id"].dropna().tolist()
     titles = data["title"].dropna().tolist()
     
+    # Tạo IDs dựa trên index của DataFrame (số thứ tự dòng trong Excel)
+    # Thêm 1 vì Excel bắt đầu từ 1, trong khi pandas index bắt đầu từ 0
+    ids = [idx + 1 for idx in data.index]
+    
     # Ensure all columns have the same length
     min_length = min(len(texts), len(doc_ids), len(titles))
     if min_length != len(texts) or min_length != len(doc_ids) or min_length != len(titles):
@@ -103,6 +107,7 @@ def create_vector_database(excel_file_path, collection_name=None, start_idx=None
         texts = texts[:min_length]
         doc_ids = doc_ids[:min_length]
         titles = titles[:min_length]
+        ids = ids[:min_length]
     
     # Apply start and end indices if provided
     if start_idx is not None:
@@ -110,12 +115,14 @@ def create_vector_database(excel_file_path, collection_name=None, start_idx=None
         texts = texts[start_idx:]
         doc_ids = doc_ids[start_idx:]
         titles = titles[start_idx:]
+        ids = ids[start_idx:]
     
     if end_idx is not None:
         end_idx = min(len(texts), end_idx)
         texts = texts[:end_idx]
         doc_ids = doc_ids[:end_idx]
         titles = titles[:end_idx]
+        ids = ids[:end_idx]
     
     print(f"Processing {len(texts)} documents (from index {start_idx or 0} to {end_idx or len(texts)})...")
     
@@ -125,11 +132,12 @@ def create_vector_database(excel_file_path, collection_name=None, start_idx=None
             "metadata": {
                 "source": excel_file_path,
                 "doc_id": doc_id,
-                "title": title
+                "title": title,
+                "excel_row": id  # Thêm số thứ tự dòng Excel vào metadata
             },
             "page_content": text
         }
-        for text, doc_id, title in zip(texts, doc_ids, titles)
+        for text, doc_id, title, id in zip(texts, doc_ids, titles, ids)
     ]
     
     print(f"Getting embeddings for {len(texts)} documents...")
@@ -137,7 +145,7 @@ def create_vector_database(excel_file_path, collection_name=None, start_idx=None
     vectors = [get_embedding(text) for text in texts]
     
     print(f"Upserting to Qdrant collection: {collection_name}")
-    upsert_to_qdrant(vectors, payloads, collection_name)
+    upsert_to_qdrant(vectors, payloads, collection_name, ids=ids)
     print(f"Successfully added {len(texts)} documents to Qdrant")
 
 def create_vector_database_from_text_files(text_dir, collection_name=None):
