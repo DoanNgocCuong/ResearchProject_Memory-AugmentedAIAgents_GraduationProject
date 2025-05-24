@@ -12,3 +12,5 @@ src/datasets/dataset_full/vimqa_train.json
 src/system/baselineRAG/_010203_OfflineIndexing_dataIngestion_Chunking_Embedding/.env
 
 src/system/baselineRAG/layers/_04_retrieval/.env
+
+.env

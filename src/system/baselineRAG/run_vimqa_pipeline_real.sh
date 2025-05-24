@@ -1,0 +1,1 @@
+python run_vimqa_pipeline_real.py --input D:\GIT\ResearchProject_Memory-AugmentedAIAgents_GraduationProject\src\datasets\dataset_full\vimqa_processed\qa_pairs_vimqa_dev_300.xlsx --nrows 5

@@ -14,17 +14,24 @@ from langchain_openai import ChatOpenAI
 from langchain_huggingface import HuggingFaceEmbeddings
 from dotenv import load_dotenv
 import os
-from .config import (
+from pathlib import Path
+import sys
+
+# Setup paths
+current_file = Path(__file__)
+retrieval_dir = current_file.parent
+sys.path.append(str(retrieval_dir))
+
+from config import (
     DEFAULT_K,
     DEFAULT_HYBRID_WEIGHTS,
     DEFAULT_VECTOR_STORE_TYPE,
-    DEFAULT_EMBEDDINGS
+    
 )
-from .vector_stores.qdrant_store import QdrantStore
-from .retrievers.vector_retriever import VectorRetriever
-from .retrievers.bm25_retriever import BM25Retriever
-from .retrievers.hybrid_retriever import HybridRetriever
-from .retrievers.compression_retriever import CompressionRetriever
+from vector_stores.qdrant_store import QdrantStore
+from retrievers.vector_retriever import VectorRetriever
+from retrievers.bm25_retriever import BM25Retriever
+from retrievers.hybrid_retriever import HybridRetriever
 
 # Load environment variables
 load_dotenv()
@@ -44,7 +51,7 @@ class DocumentRetriever:
         k: int = DEFAULT_K,
         qdrant_url: Optional[str] = None,
         qdrant_api_key: Optional[str] = None,
-        collection_name: str = "documents"
+        collection_name: str = "test_collection"
     ):
         """
         Initialize the document retriever.
@@ -63,7 +70,7 @@ class DocumentRetriever:
         self.retriever_type = retriever_type
         self.vector_store_type = vector_store_type
         self.documents = documents
-        self.embeddings_model = embeddings_model or DEFAULT_EMBEDDINGS
+        self.embeddings_model = embeddings_model
         self.hybrid_weights = hybrid_weights
         self.k = k
         
@@ -128,57 +135,100 @@ if __name__ == "__main__":
     It shows examples of how to use the DocumentRetriever class.
     """
     from langchain_core.documents import Document
-    from langchain_community.vectorstores import FAISS
+    from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+    from dotenv import load_dotenv
+    import os
+    
+    # Load environment variables
+    load_dotenv()
+    
+    # Initialize embedding model
+    embeddings = HuggingFaceInferenceAPIEmbeddings(
+        api_key=os.getenv("HUGGINGFACE_API_KEY"),
+        model_name="sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
+    )
     
     # Create sample documents
     sample_docs = [
         Document(
-            page_content="This is a sample document about RAG architecture.",
-            metadata={"source": "test1"}
+            page_content="The quick brown fox jumps over the lazy dog",
+            metadata={"source": "test1.txt"}
         ),
         Document(
-            page_content="Another document explaining vector databases.",
-            metadata={"source": "test2"}
+            page_content="A fast orange fox leaps across a sleepy canine",
+            metadata={"source": "test2.txt"}
+        ),
+        Document(
+            page_content="The weather is beautiful today",
+            metadata={"source": "test3.txt"}
         )
     ]
     
-    # Create vector store
-    vector_store = FAISS.from_documents(sample_docs, DEFAULT_EMBEDDINGS)
-    
-    # Test vector retriever
-    print("\nTesting vector retriever...")
+    # Test vector retriever with Qdrant
+    print("\nTesting vector retriever with Qdrant...")
     try:
+        print("Initializing DocumentRetriever with vector store...")
         retriever = DocumentRetriever(
-            vector_store=vector_store,
-            retriever_type="vector"
+            retriever_type="vector",
+            vector_store_type="qdrant",
+            documents=sample_docs,
+            embeddings_model=embeddings,
+            qdrant_url=os.getenv("QDRANT_URL"),
+            qdrant_api_key=os.getenv("QDRANT_API_KEY")
         )
-        docs = retriever.retrieve_documents("What is RAG?")
+        print(f"Qdrant URL: {os.getenv('QDRANT_URL')}")
+        print(f"Collection name: {retriever.vector_store.collection_name}")
+        print(f"Number of documents to process: {len(sample_docs)}")
+        
+        print("\nAttempting to retrieve documents...")
+        docs = retriever.retrieve_documents("fox jumping")
         print(f"Found {len(docs)} relevant documents using vector search")
+        print("\nVector Search Results:")
+        for i, doc in enumerate(docs, 1):
+            print(f"\nDocument {i}:")
+            print(f"Content: {doc.page_content}")
+            print(f"Metadata: {doc.metadata}")
     except Exception as e:
         print(f"Vector retriever test failed: {e}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Full traceback:\n{traceback.format_exc()}")
     
     # Test BM25 retriever
     print("\nTesting BM25 retriever...")
     try:
         retriever = DocumentRetriever(
-            documents=sample_docs,
-            retriever_type="bm25"
+            retriever_type="bm25",
+            documents=sample_docs
         )
-        docs = retriever.retrieve_documents("What is RAG?")
+        docs = retriever.retrieve_documents("fox jumping")
         print(f"Found {len(docs)} relevant documents using BM25")
+        print("\nBM25 Search Results:")
+        for i, doc in enumerate(docs, 1):
+            print(f"\nDocument {i}:")
+            print(f"Content: {doc.page_content}")
+            print(f"Metadata: {doc.metadata}")
     except Exception as e:
         print(f"BM25 retriever test failed: {e}")
     
-    # Test hybrid retriever
-    print("\nTesting hybrid retriever...")
+    # Test hybrid retriever with Qdrant
+    print("\nTesting hybrid retriever with Qdrant...")
     try:
         retriever = DocumentRetriever(
-            vector_store=vector_store,
+            retriever_type="hybrid",
+            vector_store_type="qdrant",
             documents=sample_docs,
-            retriever_type="hybrid"
+            embeddings_model=embeddings,
+            qdrant_url=os.getenv("QDRANT_URL"),
+            qdrant_api_key=os.getenv("QDRANT_API_KEY")
         )
-        docs = retriever.retrieve_documents("What is RAG?")
+        docs = retriever.retrieve_documents("fox jumping")
         print(f"Found {len(docs)} relevant documents using hybrid search")
+        print("\nHybrid Search Results:")
+        for i, doc in enumerate(docs, 1):
+            print(f"\nDocument {i}:")
+            print(f"Content: {doc.page_content}")
+            print(f"Metadata: {doc.metadata}")
     except Exception as e:
         print(f"Hybrid retriever test failed: {e}")
     

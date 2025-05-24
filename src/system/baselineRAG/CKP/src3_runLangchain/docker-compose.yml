@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: miniproj_rag7_app
+    volumes:
+      - .:/app
+    env_file:
+      - env.example
+    command: >
+      sh -c "pip install --upgrade pip &&
+             pip install -r requirements.txt &&
+             python main.py" 

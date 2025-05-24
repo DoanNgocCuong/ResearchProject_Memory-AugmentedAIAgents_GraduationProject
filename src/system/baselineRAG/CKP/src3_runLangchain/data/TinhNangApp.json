@@ -1,0 +1,138 @@
+[
+    {
+      "id": 0,
+      "content": "Learn - Gồm có 2 lộ trình chính: lộ trình giao tiếp và lộ trình từ vựng. Lộ trình giao tiếp: gồm 16 chủ đề thông dụng trong đời sống công việc, với hơn 100 tình huống (updating trong thời gian tới).",
+      "meta_data": {
+        "feature_tag": "Learn",
+        "methods": ["chunking", "spaced repetition", "shadowing"],
+        "application_values": ["phát triển từ vựng", "giao tiếp cơ bản"]
+      }
+    },
+    {
+      "id": 1,
+      "content": "Các bước học: Nạp cụm => Thực hành => Mở rộng nâng cao (chỉ áp dụng trình độ từ A2 trở lên)...",
+      "meta_data": {
+        "feature_tag": "Learn",
+        "methods": ["chunking", "spaced repetition"],
+        "application_values": ["phát triển từ vựng", "giao tiếp cơ bản"]
+      }
+    },
+    {
+      "id": 2,
+      "content": "Phần ôn tập: luyện giao tiếp và ôn tập cụm từ...",
+      "meta_data": {
+        "feature_tag": "Learn",
+        "methods": ["chunking", "spaced repetition"],
+        "application_values": ["giao tiếp cơ bản", "phát triển từ vựng"]
+      }
+    },
+    {
+      "id": 3,
+      "content": "Onion GPT - Cá nhân hóa: học viên có thể tạo tình huống theo mong muốn cá nhân...",
+      "meta_data": {
+        "feature_tag": "Onion GPT",
+        "methods": ["chunking", "shadowing"],
+        "application_values": ["mở rộng giao tiếp", "giao tiếp tự tin"]
+      }
+    },
+    {
+      "id": 4,
+      "content": "Đối tượng sử dụng: dành cho trình độ giữa A2 trở lên...",
+      "meta_data": {
+        "feature_tag": "Onion GPT",
+        "methods": ["chunking", "shadowing"],
+        "application_values": ["mở rộng giao tiếp"]
+      }
+    },
+    {
+      "id": 5,
+      "content": "Gym - Club: gồm 20 phòng, mỗi phòng tối đa 2 người chơi và 1 người dự thính...",
+      "meta_data": {
+        "feature_tag": "Gym",
+        "methods": ["shadowing"],
+        "application_values": ["cải thiện phát âm", "nghe hiểu", "thư giãn"]
+      }
+    },
+    {
+      "id": 6,
+      "content": "Thư viện kỹ năng: lồng tiếng cực mạnh, bộ bài học của tôi...",
+      "meta_data": {
+        "feature_tag": "Gym",
+        "methods": ["shadowing"],
+        "application_values": ["cải thiện phát âm", "nghe hiểu", "thư giãn"]
+      }
+    },
+    {
+      "id": 7,
+      "content": "Profile - Tổng kết kết quả học tập. Bài kiểm tra trình độ nói...",
+      "meta_data": {
+        "feature_tag": "Profile",
+        "methods": [],
+        "application_values": ["hiểu trình độ bản thân"]
+      }
+    },
+    {
+      "id": 8,
+      "content": "Công dụng: hiểu được trình độ của bản thân, tổng kết kết quả trong quá trình học APP.",
+      "meta_data": {
+        "feature_tag": "Profile",
+        "methods": [],
+        "application_values": ["hiểu trình độ bản thân"]
+      }
+    },
+    {
+      "id": 9,
+      "content": "Phương pháp học cụm chunking - Là phương pháp học và ghép cụm...",
+      "meta_data": {
+        "feature_tag": "Learn",
+        "methods": ["chunking"],
+        "application_values": ["tăng tốc độ phản xạ", "giải quyết vấn đề ngữ pháp"]
+      }
+    },
+    {
+      "id": 10,
+      "content": "Cách dùng từ tự nhiên, bản xứ với practical phrases...",
+      "meta_data": {
+        "feature_tag": "Learn",
+        "methods": ["chunking"],
+        "application_values": ["tăng tốc độ phản xạ", "giải quyết vấn đề ngữ pháp"]
+      }
+    },
+    {
+      "id": 11,
+      "content": "Phương pháp lặp lại ngắt quãng (Spaced repetition)...",
+      "meta_data": {
+        "feature_tag": "Learn",
+        "methods": ["spaced repetition"],
+        "application_values": ["củng cố trí nhớ dài hạn"]
+      }
+    },
+    {
+      "id": 12,
+      "content": "Giúp cho người học thường xuyên ôn tập lại những kiến thức đã học...",
+      "meta_data": {
+        "feature_tag": "Learn",
+        "methods": ["spaced repetition"],
+        "application_values": ["củng cố trí nhớ dài hạn"]
+      }
+    },
+    {
+      "id": 13,
+      "content": "Phương pháp shadowing - Là kỹ thuật học nói bằng cách lặp lại câu hoặc từ vừa nghe...",
+      "meta_data": {
+        "feature_tag": "Learn",
+        "methods": ["shadowing"],
+        "application_values": ["cải thiện phản xạ", "không ngại thực hành"]
+      }
+    },
+    {
+      "id": 14,
+      "content": "Giúp cho người học không ngại mở miệng thực hành...",
+      "meta_data": {
+        "feature_tag": "Learn",
+        "methods": ["shadowing"],
+        "application_values": ["cải thiện phản xạ", "không ngại thực hành"]
+      }
+    }
+  ]
+  

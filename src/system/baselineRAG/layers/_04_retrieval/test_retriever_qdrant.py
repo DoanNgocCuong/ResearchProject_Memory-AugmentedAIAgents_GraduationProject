@@ -1,5 +1,5 @@
 """
-Test retrieval functionality.
+Test retrieval functionality using Qdrant vector store.
 """
 
 from pathlib import Path
