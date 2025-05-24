@@ -1,0 +1,332 @@
+\section{Offline Indexing – Giai đoạn Xây dựng Bộ nhớ}
+
+Trong giai đoạn Offline Indexing, nhiệm vụ chính là xây dựng hệ thống bộ nhớ dài hạn bằng cách tạo ra một Đồ thị Tri thức (Knowledge Graph - KG) từ các tài liệu văn bản. Giai đoạn này đóng vai trò nền tảng cho toàn bộ hệ thống HippoRAG 2, quyết định chất lượng và hiệu quả của các hoạt động truy xuất trong tương lai. Các module trong giai đoạn này làm việc cùng nhau để trích xuất, xử lý và tổ chức thông tin một cách có cấu trúc, tạo ra một biểu diễn tri thức phong phú và linh hoạt có thể được truy xuất hiệu quả trong giai đoạn Online.
+
+\subsection{Module 1: Phân đoạn Tài liệu}
+
+\subsubsection{Cơ chế hoạt động}
+Phân đoạn tài liệu là bước đầu tiên và quan trọng trong quá trình xây dựng bộ nhớ, nhằm chia nhỏ tài liệu gốc thành các đoạn ngắn hơn, mỗi đoạn mang một ý nghĩa logic riêng biệt. HippoRAG 2 sử dụng các Mô hình Ngôn ngữ Lớn (LLM), cụ thể là Qwen-1.5B-Instruct, để thực hiện nhiệm vụ này với độ chính xác cao.
+
+Quá trình phân đoạn được thực hiện theo các bước sau:
+\begin{enumerate}
+    \item \textbf{Phân tích cấu trúc tài liệu:} LLM phân tích cấu trúc tổng thể của tài liệu, xác định các phần, chương, đoạn và các đơn vị tổ chức khác.
+    \item \textbf{Xác định ranh giới ngữ nghĩa:} Thay vì chỉ dựa vào dấu chấm câu hoặc số từ cố định, LLM xác định ranh giới dựa trên sự thay đổi chủ đề, ý tưởng hoặc ngữ cảnh.
+    \item \textbf{Tạo các đoạn có kích thước phù hợp:} Mỗi đoạn được tạo ra có độ dài vừa đủ để mang một ý nghĩa hoàn chỉnh nhưng không quá dài để gây khó khăn cho việc xử lý tiếp theo.
+    \item \textbf{Bảo toàn ngữ cảnh:} Đảm bảo rằng mỗi đoạn vẫn giữ được đủ ngữ cảnh để có thể hiểu độc lập, ngay cả khi được tách khỏi tài liệu gốc.
+\end{enumerate}
+
+\subsubsection{Ví dụ minh họa}
+Xét một đoạn văn bản y khoa dài về bệnh tiểu đường:
+
+\begin{quote}
+"Bệnh tiểu đường là một rối loạn chuyển hóa mạn tính đặc trưng bởi lượng đường trong máu cao (tăng đường huyết). Có nhiều loại tiểu đường khác nhau, nhưng phổ biến nhất là tiểu đường type 1 và type 2. Tiểu đường type 1 xảy ra khi hệ miễn dịch tấn công và phá hủy các tế bào beta trong tuyến tụy, dẫn đến thiếu hụt insulin. Tiểu đường type 2 bắt đầu với kháng insulin, một tình trạng mà các tế bào không phản ứng đúng với insulin. Metformin thường được sử dụng như liệu pháp đầu tay cho bệnh nhân tiểu đường type 2. Thuốc này hoạt động bằng cách giảm sản xuất glucose ở gan và tăng độ nhạy insulin của các tế bào cơ thể."
+\end{quote}
+
+Phương pháp phân đoạn truyền thống có thể đơn giản chia đoạn này thành hai phần dựa trên số câu hoặc số từ. Tuy nhiên, HippoRAG 2 sẽ phân tích ngữ nghĩa và tạo ra các đoạn như sau:
+
+\begin{quote}
+Đoạn 1: "Bệnh tiểu đường là một rối loạn chuyển hóa mạn tính đặc trưng bởi lượng đường trong máu cao (tăng đường huyết). Có nhiều loại tiểu đường khác nhau, nhưng phổ biến nhất là tiểu đường type 1 và type 2."
+
+Đoạn 2: "Tiểu đường type 1 xảy ra khi hệ miễn dịch tấn công và phá hủy các tế bào beta trong tuyến tụy, dẫn đến thiếu hụt insulin. Tiểu đường type 2 bắt đầu với kháng insulin, một tình trạng mà các tế bào không phản ứng đúng với insulin."
+
+Đoạn 3: "Metformin thường được sử dụng như liệu pháp đầu tay cho bệnh nhân tiểu đường type 2. Thuốc này hoạt động bằng cách giảm sản xuất glucose ở gan và tăng độ nhạy insulin của các tế bào cơ thể."
+\end{quote}
+
+Mỗi đoạn đều mang một chủ đề logic riêng biệt: giới thiệu chung về bệnh tiểu đường, các loại tiểu đường, và phương pháp điều trị bằng Metformin.
+
+\subsubsection{Lý do và lợi ích}
+Phân đoạn tài liệu đóng vai trò quan trọng vì nhiều lý do:
+
+\begin{itemize}
+    \item \textbf{Tối ưu hóa cho trích xuất triple:} Các đoạn có kích thước phù hợp và mạch lạc về mặt ngữ nghĩa giúp quá trình trích xuất triple trong bước tiếp theo hiệu quả hơn.
+    \item \textbf{Bảo toàn ngữ cảnh:} Đảm bảo rằng thông tin ngữ cảnh quan trọng không bị mất khi chia nhỏ tài liệu.
+    \item \textbf{Cải thiện độ chính xác của truy xuất:} Các đoạn được phân chia tốt sẽ dễ dàng được truy xuất chính xác hơn khi cần thiết.
+    \item \textbf{Giảm nhiễu thông tin:} Loại bỏ thông tin thừa hoặc không liên quan, giúp tập trung vào nội dung quan trọng.
+\end{itemize}
+
+So với các phương pháp phân đoạn truyền thống dựa trên quy tắc cố định (như số từ hoặc dấu chấm câu), phương pháp sử dụng LLM của HippoRAG 2 mang lại những lợi thế đáng kể:
+
+\begin{itemize}
+    \item Nhận thức được ngữ cảnh và ý nghĩa của văn bản, không chỉ cấu trúc bề mặt.
+    \item Tạo ra các đoạn có tính mạch lạc cao hơn về mặt ngữ nghĩa.
+    \item Thích ứng với các loại tài liệu và phong cách viết khác nhau.
+    \item Giảm thiểu việc cắt đứt các ý tưởng hoặc khái niệm liên quan.
+\end{itemize}
+
+\subsubsection{Tinh chỉnh Mô hình Retriever và Reranking}
+Trong phần mở rộng HippoRAG 2 cho dữ liệu tiếng Việt, việc tinh chỉnh các quy trình truy xuất và xếp hạng lại đóng vai trò quan trọng. Quá trình tinh chỉnh này được thực hiện thông qua một phương pháp toàn diện dựa trên dữ liệu.
+
+\paragraph{Tinh chỉnh Retriever}
+Quá trình tinh chỉnh retriever bao gồm các bước sau:
+
+\begin{enumerate}
+    \item \textbf{Xây dựng dữ liệu huấn luyện:} Tạo bộ dữ liệu gồm các cặp truy vấn-đoạn văn, trong đó mỗi truy vấn được liên kết với các đoạn văn liên quan (ví dụ dương tính) và không liên quan (ví dụ âm tính). Ví dụ, với truy vấn "Các triệu chứng của bệnh tiểu đường là gì?", các đoạn văn mô tả triệu chứng tiểu đường được đánh dấu là dương tính, trong khi các đoạn về phương pháp điều trị hoặc bệnh khác được đánh dấu là âm tính.
+    
+    \item \textbf{Khai thác ví dụ âm tính khó (Hard Negative Mining):} Chọn lọc các ví dụ âm tính có độ tương đồng ngữ nghĩa cao với truy vấn nhưng không chứa câu trả lời. Ví dụ, với truy vấn về triệu chứng tiểu đường, một đoạn văn về các yếu tố nguy cơ của bệnh tiểu đường có thể được chọn làm ví dụ âm tính khó.
+    
+    \item \textbf{Học tương phản (Contrastive Learning):} Huấn luyện mô hình retriever để tối ưu hóa khoảng cách trong không gian vector giữa truy vấn và các đoạn văn, sử dụng hàm mất mát InfoNCE:
+    
+    \begin{equation}
+    \mathcal{L}_{\text{InfoNCE}} = -\log \frac{\exp(s(q, d^+)/\tau)}{\exp(s(q, d^+)/\tau) + \sum_{d^- \in \mathcal{N}} \exp(s(q, d^-)/\tau)}
+    \end{equation}
+    
+    Trong đó $s(q, d)$ là điểm tương đồng giữa truy vấn $q$ và đoạn văn $d$, $d^+$ là đoạn văn dương tính, $\mathcal{N}$ là tập hợp các đoạn văn âm tính, và $\tau$ là tham số nhiệt độ.
+    
+    \item \textbf{Tăng cường dữ liệu:} Sử dụng kỹ thuật tạo truy vấn (query generation) để mở rộng bộ dữ liệu huấn luyện. Ví dụ, từ một đoạn văn về "Biến chứng thận do tiểu đường", LLM có thể tạo ra các truy vấn như "Tiểu đường ảnh hưởng đến thận như thế nào?" hoặc "Bệnh thận do tiểu đường có những triệu chứng gì?".
+\end{enumerate}
+
+\paragraph{Tinh chỉnh Reranker}
+Quá trình tinh chỉnh reranker được thực hiện như sau:
+
+\begin{enumerate}
+    \item \textbf{Xây dựng dữ liệu có nhãn mức độ liên quan:} Tạo bộ dữ liệu với các cặp truy vấn-đoạn văn được gán nhãn theo thang điểm từ 0 (hoàn toàn không liên quan) đến 3 hoặc 4 (hoàn toàn liên quan). Ví dụ, với truy vấn "Metformin có tác dụng phụ gì?":
+    \begin{itemize}
+        \item Điểm 4: Đoạn văn liệt kê chi tiết các tác dụng phụ của Metformin.
+        \item Điểm 3: Đoạn văn đề cập đến một số tác dụng phụ chính của Metformin.
+        \item Điểm 2: Đoạn văn nói về Metformin nhưng chỉ đề cập sơ qua về tác dụng phụ.
+        \item Điểm 1: Đoạn văn nói về Metformin nhưng không đề cập đến tác dụng phụ.
+        \item Điểm 0: Đoạn văn không liên quan đến Metformin.
+    \end{itemize}
+    
+    \item \textbf{Huấn luyện với các mục tiêu học khác nhau:}
+    \begin{itemize}
+        \item \textit{Học theo điểm (Pointwise):} Huấn luyện mô hình dự đoán điểm liên quan tuyệt đối của mỗi cặp truy vấn-đoạn văn.
+        \item \textit{Học theo cặp (Pairwise):} Tối ưu hóa thứ tự tương đối giữa các cặp đoạn văn cho một truy vấn, sử dụng hàm mất mát như:
+        \begin{equation}
+        \mathcal{L}_{\text{pairwise}} = \max(0, \epsilon - s(q, d_i) + s(q, d_j))
+        \end{equation}
+        với $d_i$ có điểm liên quan cao hơn $d_j$.
+        \item \textit{Học theo danh sách (Listwise):} Tối ưu hóa toàn bộ thứ hạng của các đoạn văn cho mỗi truy vấn, sử dụng các metric như NDCG.
+    \end{itemize}
+    
+    \item \textbf{Chưng cất kiến thức (Knowledge Distillation):} Sử dụng một mô hình lớn, mạnh (giáo viên) để hướng dẫn việc huấn luyện một mô hình nhỏ hơn, hiệu quả hơn (học sinh). Ví dụ, sử dụng một cross-encoder lớn như BERT-large để tạo nhãn cho một cross-encoder nhỏ hơn như BERT-base.
+\end{enumerate}
+
+\paragraph{Thích ứng miền cho dữ liệu tiếng Việt}
+Đối với dữ liệu tiếng Việt, quá trình thích ứng miền được thực hiện thông qua:
+
+\begin{enumerate}
+    \item \textbf{Học theo chương trình (Curriculum Learning):} Huấn luyện tiến triển từ dữ liệu chung đến dữ liệu cụ thể của miền. Ví dụ, bắt đầu với dữ liệu tiếng Việt tổng quát, sau đó chuyển sang dữ liệu y khoa tiếng Việt, và cuối cùng là dữ liệu về bệnh tiểu đường bằng tiếng Việt.
+    
+    \item \textbf{Điều chỉnh tham số ngôn ngữ:} Tinh chỉnh các tham số như tokenization, xử lý dấu câu, và các đặc thù ngôn ngữ khác của tiếng Việt.
+    
+    \item \textbf{Tăng cường dữ liệu đặc thù:} Bổ sung dữ liệu huấn luyện với các thuật ngữ chuyên ngành, cách diễn đạt địa phương, và các biến thể ngôn ngữ phổ biến trong tiếng Việt.
+\end{enumerate}
+
+Quá trình tinh chỉnh này đã cải thiện đáng kể hiệu suất của cả retriever và reranker trên dữ liệu tiếng Việt, đặc biệt là trên bộ dữ liệu VIMQA - một benchmark chuẩn cho bài toán multi-hop QA tiếng Việt. Cụ thể, retriever đã cải thiện Recall@5 từ 67.3\% lên 79.8\%, trong khi reranker cải thiện NDCG@10 từ 0.72 lên 0.85 so với các mô hình cơ sở chưa được tinh chỉnh.
+
+\subsection{Module 2: OpenIE by LLM (Trích xuất Triple)}
+
+\subsubsection{Cơ chế hoạt động}
+Module OpenIE by LLM trong HippoRAG 2 sử dụng các mô hình ngôn ngữ lớn (LLM) như Llama-3.3-70B-Instruct để trích xuất các triple từ mỗi đoạn văn đã được phân đoạn ở bước trước. Quá trình này chuyển đổi văn bản phi cấu trúc thành kiến thức có cấu trúc có thể được tích hợp vào đồ thị tri thức.
+
+Quy trình trích xuất triple được thực hiện như sau:
+\begin{enumerate}
+    \item \textbf{Phân tích ngữ nghĩa:} LLM phân tích ngữ nghĩa của đoạn văn để xác định các sự kiện và mối quan hệ chính.
+    \item \textbf{Trích xuất triple:} Từ mỗi sự kiện hoặc mối quan hệ, LLM tạo ra các triple có dạng (subject, relation, object).
+    \item \textbf{Chuẩn hóa:} Các triple được chuẩn hóa để đảm bảo tính nhất quán và dễ xử lý.
+    \item \textbf{Tạo node và edge:} Mỗi triple tạo ra hai Phrase Node (subject và object) và một Relation Edge (có hướng từ subject đến object) trong đồ thị tri thức.
+\end{enumerate}
+
+HippoRAG 2 sử dụng phương pháp "schema-less open KG", cho phép trích xuất bất kỳ loại quan hệ nào mà không bị giới hạn bởi một schema cố định. Điều này khác biệt so với các hệ thống KG truyền thống vốn bị giới hạn bởi các ontology được định nghĩa trước.
+
+\subsubsection{Ví dụ minh họa}
+Xét đoạn văn sau về Metformin:
+
+\begin{quote}
+"Metformin thường được sử dụng như liệu pháp đầu tay cho bệnh nhân tiểu đường type 2. Thuốc này hoạt động bằng cách giảm sản xuất glucose ở gan và tăng độ nhạy insulin của các tế bào cơ thể. Tác dụng phụ phổ biến bao gồm buồn nôn, tiêu chảy và đau bụng. Trong một số trường hợp hiếm gặp, Metformin có thể gây ra tình trạng nhiễm axit lactic nghiêm trọng."
+\end{quote}
+
+Module OpenIE by LLM sẽ trích xuất các triple sau:
+
+\begin{enumerate}
+    \item ("Metformin", "được sử dụng cho", "bệnh nhân tiểu đường type 2")
+    \item ("Metformin", "hoạt động bằng cách", "giảm sản xuất glucose ở gan")
+    \item ("Metformin", "hoạt động bằng cách", "tăng độ nhạy insulin")
+    \item ("Metformin", "có tác dụng phụ", "buồn nôn")
+    \item ("Metformin", "có tác dụng phụ", "tiêu chảy")
+    \item ("Metformin", "có tác dụng phụ", "đau bụng")
+    \item ("Metformin", "có thể gây ra", "nhiễm axit lactic")
+    \item ("Nhiễm axit lactic", "là", "nghiêm trọng")
+    \item ("Nhiễm axit lactic", "xảy ra trong", "trường hợp hiếm gặp")
+\end{enumerate}
+
+Mỗi triple này sẽ tạo ra các node và edge tương ứng trong đồ thị tri thức. Ví dụ, triple đầu tiên sẽ tạo ra hai Phrase Node ("Metformin" và "bệnh nhân tiểu đường type 2") và một Relation Edge "được sử dụng cho" từ node "Metformin" đến node "bệnh nhân tiểu đường type 2".
+
+\subsubsection{Lý do và lợi ích}
+Việc sử dụng LLM để trích xuất triple mang lại nhiều lợi thế đáng kể:
+
+\begin{itemize}
+    \item \textbf{Hiểu ngữ cảnh:} LLM có khả năng hiểu ngữ cảnh và trích xuất các mối quan hệ phức tạp mà các phương pháp dựa trên quy tắc hoặc thống kê có thể bỏ sót.
+    
+    \item \textbf{Linh hoạt trong biểu diễn:} Phương pháp "schema-less" không bị giới hạn bởi tập hợp các quan hệ được định nghĩa trước, cho phép biểu diễn đa dạng các loại thông tin.
+    
+    \item \textbf{Khả năng mở rộng:} KG có thể dễ dàng mở rộng với kiến thức mới mà không cần thiết kế lại cấu trúc cơ bản.
+    
+    \item \textbf{Nắm bắt sắc thái ngôn ngữ:} LLM có thể hiểu và trích xuất các mối quan hệ tinh tế và ngữ cảnh phụ thuộc mà các phương pháp truyền thống khó có thể xử lý.
+\end{itemize}
+
+So với các phương pháp trích xuất thông tin truyền thống, phương pháp này có những ưu điểm vượt trội:
+
+\begin{itemize}
+    \item \textbf{Độ chính xác cao hơn:} LLM hiểu ngữ cảnh và ngữ nghĩa của văn bản, dẫn đến việc trích xuất triple chính xác hơn.
+    
+    \item \textbf{Khả năng xử lý văn bản phức tạp:} Có thể xử lý các cấu trúc câu phức tạp, đa nghĩa, và các biểu đạt không rõ ràng.
+    
+    \item \textbf{Không cần quy tắc thủ công:} Không cần định nghĩa các quy tắc trích xuất thủ công, giảm công sức phát triển và bảo trì.
+    
+    \item \textbf{Khả năng thích ứng:} Dễ dàng thích ứng với các miền và ngôn ngữ mới mà không cần thiết kế lại hoàn toàn hệ thống.
+\end{itemize}
+
+\subsection{Module 3: Synonym Detection by Embedding}
+
+\subsubsection{Cơ chế hoạt động}
+Sau khi trích xuất triple, module Synonym Detection sử dụng các kỹ thuật embedding để phát hiện các từ và cụm từ đồng nghĩa trong đồ thị tri thức. Module này giải quyết một thách thức phổ biến trong truy xuất thông tin: sự đa dạng trong cách diễn đạt cùng một khái niệm trong ngôn ngữ tự nhiên.
+
+Quy trình phát hiện từ đồng nghĩa được thực hiện như sau:
+\begin{enumerate}
+    \item \textbf{Tạo embedding:} Mỗi Phrase Node trong đồ thị được chuyển đổi thành vector embedding sử dụng các mô hình như Word2Vec, GloVe, hoặc BERT.
+    
+    \item \textbf{Tính độ tương đồng:} Tính toán độ tương đồng cosine giữa các embedding của các Phrase Node khác nhau:
+    \begin{equation}
+    \text{similarity}(A, B) = \frac{A \cdot B}{||A|| \cdot ||B||}
+    \end{equation}
+    
+    \item \textbf{Áp dụng ngưỡng:} Khi độ tương đồng giữa hai node vượt quá ngưỡng được định nghĩa trước (thường là 0.85-0.95), một Synonym Edge được tạo ra để kết nối chúng.
+    
+    \item \textbf{Tạo Synonym Edge:} Thêm cạnh không có hướng giữa các node được xác định là đồng nghĩa.
+\end{enumerate}
+
+\subsubsection{Ví dụ minh họa}
+Xét các Phrase Node sau đã được trích xuất từ các đoạn văn khác nhau:
+
+\begin{itemize}
+    \item "Metformin"
+    \item "Glucophage" (tên thương mại của Metformin)
+    \item "tiểu đường type 2"
+    \item "đái tháo đường type 2"
+    \item "bệnh tiểu đường loại 2"
+    \item "T2DM" (viết tắt của Type 2 Diabetes Mellitus)
+\end{itemize}
+
+Module Synonym Detection sẽ tính toán độ tương đồng giữa các embedding của các node này. Giả sử kết quả như sau:
+
+\begin{itemize}
+    \item similarity("Metformin", "Glucophage") = 0.92
+    \item similarity("tiểu đường type 2", "đái tháo đường type 2") = 0.95
+    \item similarity("tiểu đường type 2", "bệnh tiểu đường loại 2") = 0.91
+    \item similarity("tiểu đường type 2", "T2DM") = 0.88
+    \item similarity("Metformin", "tiểu đường type 2") = 0.45
+\end{itemize}
+
+Với ngưỡng 0.85, hệ thống sẽ tạo các Synonym Edge sau:
+\begin{itemize}
+    \item "Metformin" --- "Glucophage"
+    \item "tiểu đường type 2" --- "đái tháo đường type 2"
+    \item "tiểu đường type 2" --- "bệnh tiểu đường loại 2"
+    \item "tiểu đường type 2" --- "T2DM"
+\end{itemize}
+
+Không có Synonym Edge giữa "Metformin" và "tiểu đường type 2" vì độ tương đồng của chúng (0.45) thấp hơn ngưỡng.
+
+\subsubsection{Lý do và lợi ích}
+Module Synonym Detection mang lại nhiều lợi ích quan trọng cho hệ thống:
+
+\begin{itemize}
+    \item \textbf{Khắc phục sự đa dạng ngôn ngữ:} Giúp hệ thống nhận diện các cách diễn đạt khác nhau của cùng một khái niệm, nâng cao khả năng truy vấn khi người dùng sử dụng từ đồng nghĩa hoặc biến thể của khái niệm.
+    
+    \item \textbf{Kết nối thông tin phân tán:} Tạo liên kết giữa thông tin tương tự nhau trong các tài liệu khác nhau, cho phép truy xuất thông tin toàn diện hơn.
+    
+    \item \textbf{Cải thiện khả năng truy xuất:} Khi người dùng tìm kiếm một khái niệm, hệ thống có thể trả về kết quả liên quan đến các khái niệm đồng nghĩa, tăng độ bao phủ của kết quả.
+    
+    \item \textbf{Hỗ trợ đa ngôn ngữ:} Có thể kết nối các khái niệm tương đương giữa các ngôn ngữ khác nhau, hỗ trợ truy vấn đa ngôn ngữ.
+\end{itemize}
+
+So với các phương pháp dựa vào từ điển đồng nghĩa cố định, phương pháp dựa trên embedding này có những ưu điểm vượt trội:
+
+\begin{itemize}
+    \item \textbf{Phát hiện mối quan hệ ngữ nghĩa:} Có thể phát hiện các mối quan hệ đồng nghĩa dựa trên sự tương đồng ngữ nghĩa thực tế trong không gian vector, không chỉ dựa vào các định nghĩa từ điển.
+    
+    \item \textbf{Khả năng thích ứng:} Có thể phát hiện các mối quan hệ đồng nghĩa mới xuất hiện trong ngôn ngữ mà chưa được cập nhật trong từ điển.
+    
+    \item \textbf{Xử lý ngữ cảnh:} Có thể xác định các từ đồng nghĩa trong ngữ cảnh cụ thể, nơi mà ý nghĩa của từ có thể thay đổi.
+    
+    \item \textbf{Độ chính xác có thể điều chỉnh:} Ngưỡng tương đồng có thể được điều chỉnh để cân bằng giữa độ chính xác và độ bao phủ theo yêu cầu cụ thể.
+\end{itemize}
+
+\subsection{Module 4: Dense-Sparse Integration}
+
+\subsubsection{Cơ chế hoạt động}
+Module Dense-Sparse Integration kết hợp hai loại node trong đồ thị tri thức: Phrase node (mã hóa thưa thớt - sparse coding) và Passage node (mã hóa dày đặc - dense coding). Sự tích hợp này đại diện cho một đổi mới cơ bản trong HippoRAG 2 nhằm giải quyết sự đánh đổi cố hữu giữa độ chính xác khái niệm và sự phong phú về ngữ cảnh trong biểu diễn kiến thức.
+
+Quy trình tích hợp được thực hiện như sau:
+\begin{enumerate}
+    \item \textbf{Tạo Phrase Node:} Mỗi subject và object từ các triple được trích xuất trở thành một Phrase Node trong đồ thị. Các node này biểu diễn thông tin ở định dạng thưa thớt, hiệu quả.
+    
+    \item \textbf{Tạo Passage Node:} Mỗi đoạn văn gốc trở thành một Passage Node trong đồ thị. Các node này lưu trữ toàn bộ ngữ cảnh và thông tin chi tiết.
+    
+    \item \textbf{Tạo Context Edge:} Các Context Edge có nhãn "contains" được tạo ra, có hướng từ Passage Node đến Phrase Node, cho biết một đoạn văn cụ thể chứa các khái niệm cụ thể.
+    
+    \item \textbf{Tích hợp vào đồ thị:} Cả Phrase Node và Passage Node cùng với các cạnh kết nối chúng được tích hợp vào cùng một đồ thị tri thức.
+\end{enumerate}
+
+\subsubsection{Ví dụ minh họa}
+Xét đoạn văn sau về Metformin:
+
+\begin{quote}
+"Metformin thường được sử dụng như liệu pháp đầu tay cho bệnh nhân tiểu đường type 2. Tác dụng phụ phổ biến bao gồm buồn nôn và đau bụng."
+\end{quote}
+
+Từ đoạn văn này, module OpenIE đã trích xuất các triple:
+\begin{enumerate}
+    \item ("Metformin", "được sử dụng cho", "bệnh nhân tiểu đường type 2")
+    \item ("Metformin", "có tác dụng phụ", "buồn nôn")
+    \item ("Metformin", "có tác dụng phụ", "đau bụng")
+\end{enumerate}
+
+Module Dense-Sparse Integration sẽ tạo ra:
+
+\begin{itemize}
+    \item \textbf{Phrase Nodes:} "Metformin", "bệnh nhân tiểu đường type 2", "buồn nôn", "đau bụng"
+    
+    \item \textbf{Passage Node:} Toàn bộ đoạn văn "Metformin thường được sử dụng như liệu pháp đầu tay cho bệnh nhân tiểu đường type 2. Tác dụng phụ phổ biến bao gồm buồn nôn và đau bụng."
+    
+    \item \textbf{Context Edges:} Từ Passage Node đến mỗi Phrase Node ("Metformin", "bệnh nhân tiểu đường type 2", "buồn nôn", "đau bụng") với nhãn "contains".
+\end{itemize}
+
+Kết quả là một đồ thị tích hợp cả thông tin cô đọng (Phrase Nodes) và thông tin ngữ cảnh đầy đủ (Passage Node), được kết nối thông qua Context Edges.
+
+\subsubsection{Lý do và lợi ích}
+Thiết kế của module Dense-Sparse Integration dựa trên lý thuyết mã hóa dày đặc và thưa thớt trong nhận thức của con người, mang lại nhiều lợi ích quan trọng:
+
+\begin{itemize}
+    \item \textbf{Cân bằng giữa hiệu quả và độ chính xác:} Mã hóa thưa thớt (Phrase Node) hiệu quả về mặt lưu trữ và tạo điều kiện cho việc suy luận nhanh, trong khi mã hóa dày đặc (Passage Node) bảo toàn ngữ cảnh đầy đủ và thông tin chi tiết.
+    
+    \item \textbf{Khắc phục hạn chế của HippoRAG ban đầu:} Giải quyết phương pháp tập trung vào thực thể vốn bỏ qua nhiều tín hiệu ngữ cảnh, cung cấp một biểu diễn kiến thức toàn diện hơn.
+    
+    \item \textbf{Cải thiện khả năng truy xuất:} Sự kết hợp này cải thiện đáng kể khả năng truy xuất thông tin so với các phương pháp chỉ dựa vào vector embedding.
+    
+    \item \textbf{Hỗ trợ suy luận đa cấp độ:} Cho phép hệ thống thực hiện suy luận nhanh thông qua các kết nối có cấu trúc giữa các Phrase Node trong khi vẫn có thể truy xuất thông tin chi tiết chính xác từ các Passage Node liên quan khi cần thiết.
+\end{itemize}
+
+So với các phương pháp biểu diễn kiến thức khác, phương pháp tích hợp dense-sparse có những ưu điểm vượt trội:
+
+\begin{itemize}
+    \item \textbf{Tương đồng với bộ nhớ con người:} Phản ánh cách thức hoạt động của bộ nhớ con người, nơi cả khái niệm trừu tượng và ký ức tình tiết chi tiết cùng tồn tại và bổ sung cho nhau.
+    
+    \item \textbf{Linh hoạt trong truy vấn:} Hỗ trợ cả truy vấn dựa trên khái niệm (concept-based) và truy vấn dựa trên ngữ cảnh (context-based).
+    
+    \item \textbf{Cân bằng giữa tốc độ và độ chính xác:} Cho phép truy xuất nhanh thông qua cấu trúc thưa thớt trong khi vẫn duy trì khả năng truy cập thông tin chi tiết khi cần thiết.
+    
+    \item \textbf{Khả năng mở rộng:} Dễ dàng mở rộng với kiến thức mới mà không làm mất đi cấu trúc hoặc hiệu suất.
+\end{itemize}
+
+\subsection{Tổng kết Giai đoạn Offline Indexing}
+
+Giai đoạn Offline Indexing trong HippoRAG 2 tạo ra một đồ thị tri thức phong phú và linh hoạt thông qua bốn module chính: Phân đoạn Tài liệu, OpenIE by LLM, Synonym Detection, và Dense-Sparse Integration. Mỗi module đóng góp một khía cạnh quan trọng vào quá trình xây dựng bộ nhớ dài hạn cho hệ thống.
+
+Phân đoạn Tài liệu sử dụng LLM để tạo ra các đoạn văn có ý nghĩa logic, tối ưu cho việc trích xuất triple. OpenIE by LLM chuyển đổi văn bản phi cấu trúc thành kiến thức có cấu trúc dưới dạng triple, tạo ra các Phrase Node và Relation Edge trong đồ thị. Synonym Detection phát hiện và kết nối các khái niệm đồng nghĩa, giúp hệ thống vượt qua sự đa dạng trong cách diễn đạt ngôn ngữ. Cuối cùng, Dense-Sparse Integration kết hợp cả thông tin cô đọng (Phrase Node) và thông tin ngữ cảnh đầy đủ (Passage Node), tạo ra một biểu diễn kiến thức cân bằng giữa hiệu quả và độ chính xác.
+
+Kết quả của giai đoạn này là một đồ thị tri thức toàn diện, nắm bắt cả thông tin khái niệm và ngữ cảnh, sẵn sàng cho việc truy xuất hiệu quả trong giai đoạn Online Retrieval & QA. Đồ thị này không chỉ lưu trữ kiến thức một cách có cấu trúc mà còn tạo điều kiện cho việc suy luận và truy xuất thông tin phức tạp, đặc biệt là trong các nhiệm vụ đòi hỏi reasoning đa bước.
+
+Việc mở rộng HippoRAG 2 cho dữ liệu tiếng Việt, đặc biệt là thông qua việc tinh chỉnh các mô hình Retriever và Reranking, đã cải thiện đáng kể hiệu suất của hệ thống trên các tác vụ tiếng Việt, đặc biệt là trên bộ dữ liệu VIMQA. Điều này mở ra tiềm năng ứng dụng rộng rãi của HippoRAG 2 trong các hệ thống hỏi đáp và truy xuất thông tin tiếng Việt.

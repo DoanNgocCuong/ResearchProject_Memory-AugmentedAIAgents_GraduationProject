@@ -1,0 +1,149 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\section{Online Retrieval \& QA – Giai đoạn Truy hồi và Phản hồi}
+
+Giai đoạn này mô tả chi tiết quy trình xử lý truy vấn và tạo phản hồi trong pipeline RAG được đề xuất, dựa trên kiến thức đã được cấu trúc hóa ở giai đoạn Offline. Pipeline này được thiết kế để cân bằng giữa hiệu quả tính toán và chất lượng thông tin, kết hợp truy xuất văn bản và truy xuất tri thức cấu trúc, đồng thời tích hợp các kỹ thuật nâng cao để tối ưu hóa ngữ cảnh đầu vào cho Mô hình Ngôn ngữ Lớn (LLM).
+
+\subsection{Module 1: Truy xuất Kép và Lai (Passages \& Hybrid Triples)}
+
+Khi nhận được một truy vấn từ người dùng, module đầu tiên thực hiện truy xuất song song từ hai nguồn dữ liệu: kho văn bản (để lấy passages) và Đồ thị Tri thức (KG - để lấy triples). Mục tiêu là thu thập một tập hợp thông tin ban đầu đa dạng, bao gồm cả ngữ cảnh rộng và các facts cụ thể.
+
+\subsubsection{Truy xuất Passage}
+
+Quá trình này nhằm xác định các đoạn văn bản trong kho dữ liệu có khả năng chứa thông tin liên quan đến truy vấn. Một mô hình retriever hiệu quả, ví dụ như một mô hình dense retriever (như DPR hoặc một biến thể đã được tinh chỉnh trên dữ liệu tiếng Việt) hoặc một hệ thống hybrid kết hợp BM25 và dense retrieval, được sử dụng để tính toán điểm tương đồng giữa truy vấn và từng đoạn văn bản.
+
+\textbf{Ví dụ:}
+Giả sử truy vấn là: "Tác dụng phụ phổ biến của Metformin là gì?"
+
+Mô hình retriever sẽ xử lý truy vấn này và so sánh với các đoạn văn bản trong cơ sở dữ liệu. Kết quả là một danh sách các đoạn văn được xếp hạng theo mức độ liên quan, ví dụ:
+\begin{enumerate}
+    \item Passage A (Điểm: 0.85): "Metformin là thuốc điều trị tiểu đường type 2. Một số tác dụng phụ thường gặp bao gồm buồn nôn, tiêu chảy và đau bụng..."
+    \item Passage B (Điểm: 0.78): "Liều lượng Metformin cần được điều chỉnh bởi bác sĩ. Thuốc có thể gây nhiễm axit lactic trong một số trường hợp hiếm gặp."
+    \item Passage C (Điểm: 0.72): "Ngoài Metformin, các thuốc khác như Glipizide cũng được sử dụng. Metformin giúp kiểm soát đường huyết..."
+    \item ...
+\end{enumerate}
+Danh sách này (`Ranked Passages`) cung cấp ngữ cảnh văn bản ban đầu.
+
+\subsubsection{Truy xuất Triple Lai (Hybrid Triple Retrieval)}
+
+Đồng thời với việc truy xuất passage, hệ thống thực hiện truy xuất các triple từ KG bằng phương pháp lai để tăng cường độ chính xác và độ bao phủ:
+
+\begin{enumerate}
+    \item \textbf{Tuyến tính hóa Triple:} Mỗi triple trong KG, ví dụ `(Metformin, hasSideEffect, Nausea)`, được chuyển thành câu tự nhiên: "Metformin has side effect Nausea.".
+    \item \textbf{Truy xuất Sparse (BM25):} Thuật toán BM25 được áp dụng trên tập các câu triple đã tuyến tính hóa. Nó sẽ tìm các câu triple chứa các từ khóa quan trọng từ truy vấn (ví dụ: "Metformin", "tác dụng phụ").
+        *   Ví dụ kết quả BM25: [("Metformin has side effect Nausea.", Score: 15.2), ("Metformin causes side effect Diarrhea.", Score: 14.8), ("Metformin treats DiabetesType2.", Score: 5.1), ...]
+    \item \textbf{Truy xuất Dense (Embedding):} Truy vấn và tất cả các câu triple đã tuyến tính hóa được nhúng vào không gian vector bằng một mô hình embedding phù hợp (ví dụ: NV-Embed-v2). Độ tương đồng cosine giữa vector truy vấn và vector của từng câu triple được tính toán.
+        *   Ví dụ kết quả Dense: [("Metformin has side effect Nausea.", Score: 0.91), ("Metformin may cause AbdominalPain.", Score: 0.88), ("Metformin treats DiabetesType2.", Score: 0.65), ...]
+    \item \textbf{Kết hợp Kết quả (RRF):} Điểm số và thứ hạng từ BM25 và Dense retriever được kết hợp bằng Reciprocal Rank Fusion (RRF). Công thức RRF cho một triple $t$ là: $Score_{RRF}(t) = \sum_{r \in \{BM25, Dense\}} \frac{1}{k + rank_r(t)}$, với $rank_r(t)$ là thứ hạng của triple $t$ trong kết quả của retriever $r$, và $k$ là một hằng số (thường là 60). RRF ưu tiên các triple xuất hiện ở thứ hạng cao trong cả hai phương pháp.
+        *   Ví dụ kết quả RRF (`Ranked Triples`): [(`(Metformin, hasSideEffect, Nausea)`, Score: 0.082), (`(Metformin, causesSideEffect, Diarrhea)`, Score: 0.048), (`(Metformin, mayCause, AbdominalPain)`, Score: 0.045), (`(Metformin, treats, DiabetesType2)`, Score: 0.021), ...]
+\end{enumerate}
+Phương pháp lai này đảm bảo rằng cả sự trùng khớp từ khóa và sự tương đồng ngữ nghĩa đều được xem xét, tạo ra một danh sách `Ranked Triples` chất lượng cao.
+
+\subsection{Module 2: Lọc Triple (Triple Filtering)}
+
+Danh sách `Ranked Triples` từ Module 1 có thể vẫn chứa thông tin không liên quan hoặc ít quan trọng. Module này thực hiện lọc để giữ lại những facts cốt lõi và đáng tin cậy nhất.
+
+Cơ chế lọc được chọn dựa trên sự cân bằng giữa độ chính xác và chi phí tính toán. Ví dụ, có thể sử dụng phương pháp lọc dựa trên LLM đơn giản hóa:
+
+\begin{enumerate}
+    \item \textbf{Chọn Top-N Triples:} Lấy N triple có điểm RRF cao nhất từ `Ranked Triples` (ví dụ: N=10).
+    \item \textbf{Đánh giá bằng LLM:} Đối với mỗi triple trong Top-N, sử dụng một LLM (có thể là một mô hình nhỏ hơn, hiệu quả hơn) với một prompt được thiết kế để đánh giá mức độ liên quan trực tiếp của triple đó với truy vấn gốc. Ví dụ prompt:
+        ```
+        Truy vấn: Tác dụng phụ phổ biến của Metformin là gì?
+        Triple: (Metformin, treats, DiabetesType2)
+        Triple này có trực tiếp trả lời hoặc cung cấp thông tin cốt lõi cho truy vấn không? (Có/Không)
+        ```
+    \item \textbf{Lọc Kết quả:} Chỉ giữ lại những triple được LLM đánh giá là "Có" liên quan trực tiếp.
+\end{enumerate}
+
+\textbf{Ví dụ (tiếp theo):}
+Áp dụng lọc LLM cho các `Ranked Triples` ở trên:
+*   `(Metformin, hasSideEffect, Nausea)` -> LLM đánh giá: Có
+*   `(Metformin, causesSideEffect, Diarrhea)` -> LLM đánh giá: Có
+*   `(Metformin, mayCause, AbdominalPain)` -> LLM đánh giá: Có
+*   `(Metformin, treats, DiabetesType2)` -> LLM đánh giá: Không (liên quan đến Metformin nhưng không phải tác dụng phụ)
+
+Kết quả là tập `Filtered Triples`: {`(Metformin, hasSideEffect, Nausea)`, `(Metformin, causesSideEffect, Diarrhea)`, `(Metformin, mayCause, AbdominalPain)`}. Tập hợp này chứa các facts cấu trúc được coi là đáng tin cậy và liên quan nhất đến truy vấn.
+
+\subsection{Module 3: Xếp hạng lại Passage và Mở rộng Ngữ cảnh (Passage Reranking \& Context Expansion)}
+
+Module này tinh chỉnh và làm giàu ngữ cảnh sẽ được cung cấp cho LLM bằng cách tận dụng các `Filtered Triples` và cấu trúc cục bộ của KG.
+
+\subsubsection{Xếp hạng lại Passage dựa trên Triple (Triple-based Passage Reranking)}
+
+Bước này nhằm ưu tiên các passage không chỉ tương tự truy vấn mà còn được hỗ trợ bởi các facts đáng tin cậy trong `Filtered Triples`.
+
+\begin{enumerate}
+    \item \textbf{Kiểm tra Sự hỗ trợ:} Đối với mỗi passage trong `Ranked Passages` (từ Module 1), kiểm tra xem nó có chứa các thực thể (subject/object) từ các triple trong `Filtered Triples` hay không. Có thể sử dụng các kỹ thuật nhận dạng thực thể hoặc so khớp chuỗi đơn giản.
+    \item \textbf{Tính điểm Rerank:} Tính một điểm số rerank cho mỗi passage. Một cách đơn giản là đếm số lượng `Filtered Triples` mà passage đó hỗ trợ (tức là chứa cả subject và object của triple). Ví dụ: $Score_{rerank}(P) = \sum_{t \in FilteredTriples} \mathbb{I}(P \text{ supports } t)$, với $\mathbb{I}$ là hàm chỉ thị (indicator function).
+    \item \textbf{Kết hợp Điểm:} Kết hợp điểm retriever ban đầu ($Score_{retriever}$) với điểm rerank ($Score_{rerank}$) để có điểm cuối cùng. Ví dụ: $Score_{final}(P) = \alpha \cdot Score_{retriever}(P) + (1-\alpha) \cdot Score_{rerank}(P)$, với $\alpha$ là trọng số cân bằng (ví dụ: $\alpha=0.7$).
+    \item \textbf{Xếp hạng lại:} Sắp xếp lại các passage dựa trên $Score_{final}$.
+\end{enumerate}
+
+\textbf{Ví dụ (tiếp theo):}
+Giả sử `Filtered Triples` = {`(M, SE, N)`, `(M, SE, D)`, `(M, SE, AP)`} (viết tắt).
+*   Passage A (Score: 0.85) chứa "Metformin", "buồn nôn", "tiêu chảy", "đau bụng". Hỗ trợ 3 triples. $Score_{rerank}=3$. $Score_{final} = 0.7*0.85 + 0.3*3 = 0.595 + 0.9 = 1.495$.
+*   Passage B (Score: 0.78) chứa "Metformin". Hỗ trợ 0 triples. $Score_{rerank}=0$. $Score_{final} = 0.7*0.78 + 0.3*0 = 0.546$.
+*   Passage C (Score: 0.72) chứa "Metformin". Hỗ trợ 0 triples. $Score_{rerank}=0$. $Score_{final} = 0.7*0.72 + 0.3*0 = 0.504$.
+
+Kết quả `Reranked Passages`: [Passage A, Passage B, Passage C, ...]. Passage A được đẩy lên hạng cao hơn vì nó được hỗ trợ bởi nhiều facts đáng tin cậy.
+
+\subsubsection{Mở rộng Đồ thị Cục bộ (Lightweight Graph Expansion)}
+
+Bước này tìm kiếm thêm thông tin liên quan trực tiếp đến các facts cốt lõi đã xác định, nhằm cung cấp một cái nhìn rộng hơn một chút về ngữ cảnh.
+
+\begin{enumerate}
+    \item \textbf{Xác định Thực thể Cốt lõi:} Lấy tất cả các thực thể (subjects và objects) xuất hiện trong `Filtered Triples`. Ví dụ: {Metformin, Nausea, Diarrhea, AbdominalPain}.
+    \item \textbf{Tìm kiếm 1-hop trên KG:} Đối với mỗi thực thể cốt lõi, truy vấn KG để tìm tất cả các triple mà thực thể đó tham gia (là subject hoặc object). Loại bỏ các triple đã có trong `Filtered Triples`.
+        *   Ví dụ, từ "Nausea", có thể tìm thấy triple `(Nausea, isSymptomOf, Gastritis)`.
+        *   Từ "Metformin", có thể tìm thấy `(Metformin, interactsWith, Alcohol)` hoặc `(Metformin, hasMechanism, ReduceGlucoseProduction)`.
+    \item \textbf{Thu thập Ngữ cảnh Mở rộng:} Tập hợp các triple 1-hop mới tìm được này tạo thành `Expanded Context`. Có thể tùy chọn lọc bớt các triple này nếu chúng quá xa rời chủ đề truy vấn.
+
+\end{enumerate}
+\textbf{Ví dụ (tiếp theo):}
+`Expanded Context` có thể chứa: {`(Nausea, isSymptomOf, Gastritis)`, `(Metformin, interactsWith, Alcohol)`, `(Metformin, hasMechanism, ReduceGlucoseProduction)`}.
+
+Bước này giúp bổ sung các mối liên hệ hoặc thông tin phụ trợ mà có thể hữu ích cho LLM hiểu rõ hơn về các thực thể chính.
+
+\subsection{Module 4: Chuẩn bị Ngữ cảnh và Tạo Câu trả lời (Context Preparation \& Answer Generation)}
+
+Module cuối cùng tổng hợp tất cả thông tin đã được truy xuất, lọc và mở rộng để tạo prompt cho LLM và nhận câu trả lời cuối cùng.
+
+\subsubsection{Xây dựng Prompt Đầu vào cho LLM}
+
+Một prompt hiệu quả cần cung cấp đầy đủ thông tin một cách có cấu trúc. Prompt thường bao gồm các thành phần sau:
+
+\begin{verbatim}
+**Truy vấn:** Tác dụng phụ phổ biến của Metformin là gì?
+
+**Các đoạn văn bản liên quan (Top-K Reranked Passages):**
+*   Passage A: Metformin là thuốc điều trị tiểu đường type 2. Một số tác dụng phụ thường gặp bao gồm buồn nôn, tiêu chảy và đau bụng...
+*   Passage B: Liều lượng Metformin cần được điều chỉnh bởi bác sĩ. Thuốc có thể gây nhiễm axit lactic trong một số trường hợp hiếm gặp.
+*   ...
+
+**Các sự thật cốt lõi đã xác minh (Filtered Triples):**
+*   Metformin có tác dụng phụ là Buồn nôn.
+*   Metformin gây ra tác dụng phụ là Tiêu chảy.
+*   Metformin có thể gây ra Đau bụng.
+
+**Thông tin liên quan bổ sung (Expanded Context - tùy chọn):**
+*   Buồn nôn là triệu chứng của Viêm dạ dày.
+*   Metformin tương tác với Rượu.
+*   Metformin có cơ chế làm giảm sản xuất Glucose.
+
+**Câu hỏi:** Dựa trên thông tin trên, hãy trả lời câu truy vấn ban đầu.
+\end{verbatim}
+
+Việc trình bày rõ ràng từng loại thông tin giúp LLM phân biệt và sử dụng chúng hiệu quả.
+
+\subsubsection{Tạo Câu trả lời bằng LLM}
+
+LLM nhận prompt đã được xây dựng cẩn thận và sử dụng toàn bộ ngữ cảnh được cung cấp (passages đã rerank, facts cốt lõi, ngữ cảnh mở rộng) để tổng hợp và tạo ra câu trả lời cuối cùng. Ví dụ:
+
+"Các tác dụng phụ phổ biến của Metformin bao gồm buồn nôn, tiêu chảy và đau bụng. Đây là những thông tin được xác nhận và thường gặp khi sử dụng thuốc này để điều trị tiểu đường type 2."
+
+Nhờ ngữ cảnh đầu vào chất lượng cao, được xác thực bởi KG và làm giàu bởi các mối liên hệ cục bộ, câu trả lời của LLM có xu hướng chính xác, đầy đủ và đáng tin cậy hơn, giảm thiểu nguy cơ đưa ra thông tin sai lệch hoặc không liên quan.
+
+\end{document}
+

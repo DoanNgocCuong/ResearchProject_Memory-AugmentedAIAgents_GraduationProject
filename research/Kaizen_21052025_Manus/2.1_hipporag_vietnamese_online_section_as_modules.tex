@@ -1,0 +1,175 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\section{Tổng quan}
+Luận văn này khám phá việc ứng dụng và mở rộng HippoRAG 2, một framework Retrieval-Augmented Generation (RAG) tiên tiến lấy cảm hứng từ cơ chế bộ nhớ dài hạn của con người. Được phát triển bởi các nhà nghiên cứu tại OSU-NLP Group, HippoRAG 2 được thiết kế để giúp các Mô hình Ngôn ngữ Lớn (LLM) liên tục tích hợp kiến thức từ các tài liệu bên ngoài. Framework này giải quyết những hạn chế chính trong các hệ thống RAG truyền thống bằng cách kết hợp các thành phần lấy cảm hứng từ thần kinh học, mô phỏng quá trình ghi nhớ của con người. Trong công trình này, tôi nghiên cứu và mở rộng HippoRAG 2, đặc biệt tập trung vào việc áp dụng nó cho dữ liệu tiếng Việt và các tác vụ lập luận đa bước.
+
+HippoRAG 2 hoạt động trong hai giai đoạn chính: giai đoạn Offline Indexing để xây dựng bộ nhớ và giai đoạn Online Retrieval \& QA để truy xuất thông tin và tạo phản hồi. Giai đoạn Offline Indexing xây dựng hệ thống bộ nhớ dài hạn cho framework bằng cách tạo ra một Đồ thị Tri thức (Knowledge Graph - KG) từ các tài liệu văn bản, chuyển đổi văn bản thô thành một biểu diễn có cấu trúc, nắm bắt cả thông tin khái niệm và chi tiết ngữ cảnh. Giai đoạn Online Retrieval \& QA sử dụng KG đã xây dựng này để truy xuất thông tin dựa trên truy vấn của người dùng và tạo ra các phản hồi thông minh, sử dụng các thuật toán phức tạp để điều hướng cấu trúc tri thức và trích xuất thông tin liên quan.
+
+Luồng công việc tổng thể được minh họa trong Hình 1, thể hiện hai giai đoạn chính này. HippoRAG 2 được xây dựng dựa trên framework HippoRAG ban đầu nhưng giới thiệu một số cải tiến quan trọng nhằm tăng cường sự phù hợp với cơ chế bộ nhớ của con người. Những cải tiến này bao gồm việc tích hợp liền mạch thông tin khái niệm và ngữ cảnh, truy xuất nhận thức ngữ cảnh tốt hơn, và bộ nhớ nhận diện để cải thiện việc lựa chọn nút hạt giống. Nghiên cứu của tôi xem xét chi tiết các cơ chế này và khám phá hiệu quả của chúng khi áp dụng cho dữ liệu tiếng Việt.
+
+\section{Offline Indexing – Giai đoạn Xây dựng Bộ nhớ}
+Trong giai đoạn Offline Indexing, nhiệm vụ chính là xây dựng hệ thống bộ nhớ dài hạn bằng cách tạo ra một Đồ thị Tri thức (Knowledge Graph - KG) từ các tài liệu văn bản. Các module trong giai đoạn này làm việc cùng nhau để trích xuất, xử lý và tổ chức thông tin một cách có cấu trúc nhằm hỗ trợ các bước truy xuất trong tương lai. Giai đoạn này rất quan trọng vì nó quyết định chất lượng và hiệu quả của các hoạt động truy xuất tiếp theo.
+
+\subsection{Module 1: Phân đoạn Tài liệu}
+Phân đoạn tài liệu là một bước quan trọng nhằm chia nhỏ tài liệu gốc thành các đoạn ngắn hơn, mỗi đoạn mang một ý nghĩa logic riêng biệt. Quá trình này đảm bảo rằng thông tin được tổ chức thành các đơn vị dễ quản lý, có thể được xử lý và truy xuất hiệu quả. HippoRAG 2 sử dụng các Mô hình Ngôn ngữ Lớn (LLM), như Qwen-1.5B-Instruct, để nâng cao khả năng phân đoạn vượt trội so với các phương pháp dựa trên quy tắc truyền thống.
+
+Quá trình phân đoạn bắt đầu bằng việc tách văn bản thành các câu riêng biệt trong khi vẫn giữ nguyên ý nghĩa của chúng. Không giống như việc chia câu đơn giản, hệ thống sử dụng LLM để đánh giá ngữ cảnh và đưa ra quyết định sáng suốt về việc hợp nhất hay tách câu dựa trên cấu trúc logic của chúng. Phương pháp tiếp cận nhận thức ngữ cảnh này tạo ra các đoạn văn mạch lạc, ngắn gọn và dễ quản lý, được tối ưu hóa cho việc trích xuất triple tiếp theo.
+
+Quá trình phân đoạn này đặc biệt quan trọng vì nó ảnh hưởng trực tiếp đến chất lượng của việc trích xuất triple và xây dựng đồ thị tri thức sau này. Bằng cách tạo ra các đoạn văn có tính liên kết logic, hệ thống đảm bảo rằng các triple được trích xuất duy trì được ngữ cảnh và mối quan hệ ngữ nghĩa phù hợp. Việc phân đoạn kém có thể dẫn đến thông tin bị phân mảnh hoặc mất các mối quan hệ ngữ cảnh, làm suy yếu hiệu quả của toàn bộ framework.
+
+\subsubsection{Tinh chỉnh Mô hình Retriever và Reranking}
+Trong phần mở rộng HippoRAG 2 của tôi, tôi đặc biệt tập trung vào việc tinh chỉnh các quy trình truy xuất và xếp hạng lại cho dữ liệu tiếng Việt. Hiệu quả của cả hai thành phần được tăng cường đáng kể thông qua việc tinh chỉnh trên dữ liệu cụ thể của miền. Cách tiếp cận dựa trên dữ liệu này cho phép hệ thống thích ứng với các miền kiến thức và mẫu truy vấn cụ thể, dẫn đến việc truy xuất thông tin chính xác và phù hợp hơn.
+
+Đối với thành phần retriever, phương pháp tinh chỉnh của tôi bao gồm một quy trình nhiều giai đoạn sử dụng dữ liệu huấn luyện được tuyển chọn cẩn thận. Ban đầu, một bộ dữ liệu gồm các cặp truy vấn-đoạn văn được xây dựng, trong đó mỗi truy vấn được liên kết với các đoạn văn liên quan (ví dụ dương tính) và các đoạn văn không liên quan (ví dụ âm tính). Mô hình retriever, thường dựa trên kiến trúc bộ mã hóa kép (dual-encoder), sau đó được tinh chỉnh bằng cách sử dụng các mục tiêu học tương phản như mất mát InfoNCE. Việc huấn luyện này khuyến khích mô hình tạo ra các embedding đặt các truy vấn và đoạn văn có liên quan về mặt ngữ nghĩa gần nhau hơn trong không gian vector trong khi đẩy nội dung không liên quan ra xa hơn.
+
+Dữ liệu huấn luyện để tinh chỉnh retriever thường được tăng cường thông qua các kỹ thuật như khai thác ví dụ âm tính khó (hard negative mining), trong đó các ví dụ âm tính thách thức, bề ngoài tương tự như ví dụ dương tính nhưng khác biệt về mặt ngữ nghĩa, được cố ý đưa vào. Điều này buộc mô hình phải học các phân biệt tinh tế hơn giữa nội dung liên quan và không liên quan. Ngoài ra, các kỹ thuật tạo truy vấn có thể được sử dụng để mở rộng dữ liệu huấn luyện, trong đó LLM tạo ra các truy vấn tiềm năng cho các đoạn văn để tạo thêm các cặp huấn luyện.
+
+Đối với các mô hình reranking, quy trình tinh chỉnh mà tôi triển khai thậm chí còn phức tạp hơn. Các mô hình này thường sử dụng kiến trúc bộ mã hóa chéo (cross-encoder) cho phép tương tác sâu hơn giữa các biểu diễn truy vấn và đoạn văn. Dữ liệu huấn luyện bao gồm các cặp truy vấn-đoạn văn với nhãn mức độ liên quan được phân loại, thường theo thang điểm từ 0 (hoàn toàn không liên quan) đến 3 hoặc 4 (hoàn toàn liên quan). Mô hình reranker được tinh chỉnh bằng cách sử dụng các mục tiêu học theo điểm (pointwise), theo cặp (pairwise) hoặc theo danh sách (listwise).
+
+Trong học theo điểm, mô hình được huấn luyện để dự đoán điểm liên quan tuyệt đối của mỗi cặp truy vấn-đoạn văn. Học theo cặp tập trung vào việc sắp xếp chính xác các cặp đoạn văn cho một truy vấn nhất định, trong khi học theo danh sách tối ưu hóa toàn bộ thứ hạng của các đoạn văn cho mỗi truy vấn. Các kỹ thuật như chưng cất kiến thức (knowledge distillation) cũng có thể được sử dụng, trong đó một mô hình lớn hơn, mạnh hơn (giáo viên) hướng dẫn việc huấn luyện một mô hình nhỏ hơn, hiệu quả hơn (học sinh).
+
+Thích ứng miền là một khía cạnh quan trọng trong phương pháp tinh chỉnh của tôi cho cả retriever và reranker. Đối với các ứng dụng chuyên biệt với dữ liệu tiếng Việt, các mô hình được tiền huấn luyện trên các kho ngữ liệu chung được tinh chỉnh thêm trên dữ liệu cụ thể của miền. Quá trình này thường bao gồm học theo chương trình (curriculum learning), trong đó việc huấn luyện tiến triển từ các ví dụ chung đến các ví dụ ngày càng cụ thể theo miền, cho phép mô hình chuyển giao kiến thức chung trong khi thích ứng với các sắc thái của miền.
+
+Quá trình tinh chỉnh kết hợp các kỹ thuật điều chuẩn khác nhau để ngăn chặn việc quá khớp (overfitting), bao gồm dropout, suy giảm trọng số (weight decay) và dừng sớm dựa trên hiệu suất xác thực. Các chiến lược tăng cường dữ liệu như cải cách truy vấn, diễn giải đoạn văn và tạo dữ liệu tổng hợp giúp cải thiện độ mạnh mẽ và khả năng khái quát hóa của mô hình.
+
+Việc theo dõi hiệu suất trong quá trình tinh chỉnh theo dõi các chỉ số như Mean Reciprocal Rank (MRR), Normalized Discounted Cumulative Gain (NDCG) và Recall@k. Tối ưu hóa siêu tham số thông qua các kỹ thuật như tối ưu hóa Bayes hoặc tìm kiếm lưới giúp xác định tốc độ học, kích thước lô và thời gian huấn luyện tối ưu cho từng ứng dụng cụ thể.
+
+Thông qua phương pháp tinh chỉnh toàn diện này, việc triển khai các thành phần retriever và reranker của HippoRAG 2 trong nghiên cứu của tôi đạt được hiệu suất cao hơn đáng kể trong các tác vụ cụ thể của tiếng Việt so với các mô hình mục đích chung, đóng góp đáng kể vào hiệu quả tổng thể của framework.
+
+\subsection{Module 2: OpenIE by LLM (Trích xuất Triple)}
+Module OpenIE by LLM trong HippoRAG 2 sử dụng các mô hình mạnh mẽ như Llama-3.3-70B để trích xuất triple từ mỗi đoạn văn. Module này đại diện cho một bước quan trọng trong việc chuyển đổi văn bản phi cấu trúc thành kiến thức có cấu trúc có thể được tích hợp vào đồ thị tri thức. Quá trình trích xuất tập trung vào việc xác định các triple chủ thể-quan hệ-đối tượng nắm bắt các sự kiện và mối quan hệ thiết yếu trong văn bản.
+
+Triple tuân theo định dạng (subject, relation, object), cung cấp một cách tự nhiên để biểu diễn thông tin thực tế. Ví dụ: Từ câu "Elon Musk đã sáng lập SpaceX," hệ thống trích xuất triple ("Elon Musk", "đã sáng lập", "SpaceX"). Mỗi triple được trích xuất tạo ra hai Phrase Node (subject và object) và một Relation Edge (có hướng từ subject đến object) trong đồ thị tri thức. Biểu diễn có cấu trúc này cho phép lưu trữ và truy xuất thông tin hiệu quả.
+
+Một đổi mới quan trọng trong HippoRAG 2 là việc sử dụng phương pháp "schema-less open KG". Không giống như các đồ thị tri thức truyền thống bị giới hạn bởi các ontology được định nghĩa trước, phương pháp này cho phép trích xuất bất kỳ loại quan hệ nào mà không bị giới hạn bởi một schema cố định. Tính linh hoạt này cho phép hệ thống nắm bắt một phạm vi thông tin và mối quan hệ rộng hơn, làm cho nó dễ thích ứng hơn với các miền kiến thức đa dạng.
+
+Phương pháp này mang lại những lợi thế đáng kể so với các hệ thống trích xuất thông tin truyền thống. Không giống như các phương pháp trích xuất dựa trên quy tắc hoặc thống kê, LLM có thể hiểu ngữ cảnh và trích xuất các mối quan hệ phức tạp mà các phương pháp cứng nhắc hơn có thể bỏ sót. Hệ thống không bị giới hạn bởi các tập hợp quan hệ được định nghĩa trước, cho phép biểu diễn thông tin đa dạng nắm bắt tốt hơn các sắc thái của ngôn ngữ tự nhiên. Hơn nữa, phương pháp không có schema giúp KG linh hoạt và dễ dàng mở rộng với kiến thức mới mà không cần thiết kế lại cấu trúc cơ bản.
+
+\subsection{Module 3: Synonym Detection by Embedding}
+Sau khi trích xuất triple, module Synonym Detection sử dụng các kỹ thuật embedding (Word2Vec, GloVe, BERT) để phát hiện các từ và cụm từ đồng nghĩa. Module này giải quyết một thách thức phổ biến trong truy xuất thông tin: sự đa dạng trong cách diễn đạt cùng một khái niệm trong ngôn ngữ tự nhiên. Bằng cách xác định và kết nối các thuật ngữ đồng nghĩa, hệ thống có thể bắc cầu qua những biến thể ngôn ngữ này và cải thiện hiệu suất truy xuất.
+
+Quá trình bắt đầu bằng việc tính toán độ tương đồng cosine giữa các embedding của các Phrase Node khác nhau trong đồ thị tri thức. Khi độ tương đồng giữa hai node vượt quá ngưỡng được định nghĩa trước, một Synonym Edge được tạo ra để kết nối chúng. Ví dụ, hệ thống có thể kết nối "NYC" với "New York City" thông qua Synonym Edge, nhận ra rằng các thuật ngữ này đề cập đến cùng một thực thể mặc dù hình thức bề mặt của chúng khác nhau.
+
+Module này mang lại một số lợi ích chính cho toàn bộ framework. Nó giúp hệ thống nhận diện các cách diễn đạt khác nhau của cùng một khái niệm, nâng cao khả năng truy vấn khi người dùng sử dụng từ đồng nghĩa hoặc biến thể của khái niệm. Bằng cách tạo kết nối giữa thông tin tương tự nhau trong các tài liệu khác nhau, nó cho phép truy xuất thông tin toàn diện hơn mà không bị giới hạn bởi các lựa chọn thuật ngữ cụ thể.
+
+Không giống như các phương pháp dựa vào từ điển đồng nghĩa cố định, phương pháp dựa trên embedding này có thể phát hiện các mối quan hệ đồng nghĩa dựa trên sự tương đồng ngữ nghĩa thực tế trong không gian vector. Điều này cho phép nó xác định các mối quan hệ có thể không được nắm bắt trong các tài nguyên từ vựng được định nghĩa trước. Kết quả là một hệ thống linh hoạt và mạnh mẽ hơn, có thể kết nối thông tin giữa các tài liệu sử dụng thuật ngữ khác nhau nhưng truyền tải cùng một ý nghĩa.
+
+\subsection{Module 4: Dense-Sparse Integration}
+Module Dense-Sparse Integration kết hợp hai loại node trong đồ thị tri thức: Phrase node (mã hóa thưa thớt - sparse coding) và Passage node (mã hóa dày đặc - dense coding). Sự tích hợp này đại diện cho một đổi mới cơ bản trong HippoRAG 2 nhằm giải quyết sự đánh đổi cố hữu giữa độ chính xác khái niệm và sự phong phú về ngữ cảnh trong biểu diễn kiến thức.
+
+Phrase node lưu trữ các khái niệm cô đọng, cụ thể là các chủ thể và đối tượng được trích xuất từ triple. Các node này biểu diễn thông tin ở định dạng thưa thớt, hiệu quả, tạo điều kiện cho việc suy luận và truy xuất nhanh chóng. Mặt khác, Passage node lưu trữ toàn bộ đoạn văn gốc, bảo toàn ngữ cảnh đầy đủ và thông tin chi tiết. Hai loại node này được liên kết thông qua các Context edge có nhãn "contains," có hướng từ Passage Node đến Phrase Node, cho biết một đoạn văn cụ thể chứa các khái niệm cụ thể.
+
+Thiết kế của module này dựa trên lý thuyết mã hóa dày đặc và thưa thớt trong nhận thức của con người. Mã hóa thưa thớt, được đại diện bởi Phrase Node, hiệu quả về mặt lưu trữ và tạo điều kiện cho việc suy luận bằng cách tập trung vào các khái niệm thiết yếu. Mã hóa dày đặc, được đại diện bởi Passage Node, bảo toàn ngữ cảnh đầy đủ và thông tin chi tiết phong phú có thể bị mất trong các biểu diễn cô đọng hơn. Bằng cách kết hợp cả hai phương pháp, hệ thống đạt được sự cân bằng giữa hiệu quả xử lý và độ chính xác của thông tin.
+
+Sự tích hợp này giải quyết những hạn chế chính của framework HippoRAG ban đầu. Nó khắc phục phương pháp tập trung vào thực thể vốn bỏ qua nhiều tín hiệu ngữ cảnh, cung cấp một biểu diễn kiến thức toàn diện hơn. Sự kết hợp này cải thiện đáng kể khả năng truy xuất thông tin so với các phương pháp chỉ dựa vào vector embedding. Có lẽ quan trọng nhất, nó cho phép hệ thống thực hiện suy luận nhanh thông qua các kết nối có cấu trúc giữa các Phrase Node trong khi vẫn có thể truy xuất thông tin chi tiết chính xác từ các Passage Node liên quan khi cần thiết.
+
+Sự tích hợp dense-sparse đại diện cho một cải tiến cơ bản trong HippoRAG 2, giải quyết sự đánh đổi giữa khái niệm và ngữ cảnh tồn tại trong nhiều hệ thống biểu diễn kiến thức. Bằng cách kết hợp cả mã hóa thưa thớt (để biểu diễn khái niệm hiệu quả) và mã hóa dày đặc (để cung cấp thông tin ngữ cảnh phong phú), hệ thống đạt được sự cân bằng gần hơn với cách tổ chức bộ nhớ của con người, nơi cả khái niệm trừu tượng và ký ức tình tiết chi tiết cùng tồn tại và bổ sung cho nhau.
+
+\section{Online Retrieval \& QA – Giai đoạn Truy hồi và Phản hồi}
+
+Giai đoạn này là trọng tâm của pipeline RAG được đề xuất trong luận văn, nơi kiến thức đã được xây dựng ở giai đoạn Offline được khai thác để trả lời truy vấn của người dùng. Thay vì triển khai đầy đủ các cơ chế phức tạp của HippoRAG 2 như gán trọng số seed node và tìm kiếm đồ thị PPR, pipeline này tập trung vào việc kết hợp hiệu quả thông tin từ passages và triples thông qua một chuỗi các module được thiết kế cẩn thận.
+
+\subsection{Module 1: Truy xuất Kép và Lai (Passages \& Hybrid Triples)}
+
+Bước khởi đầu của giai đoạn online là truy xuất đồng thời hai nguồn thông tin chính liên quan đến truy vấn: các đoạn văn bản (passages) và các bộ ba tri thức (triples).
+
+\subsubsection{Truy xuất Passage}
+
+Sử dụng một mô hình retriever tiêu chuẩn (ví dụ: BM25, DPR, hoặc một mô hình dense retriever đã được tinh chỉnh cho dữ liệu tiếng Việt như mô tả ở giai đoạn Offline) để tìm kiếm và xếp hạng các đoạn văn bản trong kho dữ liệu dựa trên độ tương đồng với truy vấn của người dùng. Kết quả là một danh sách các đoạn văn được xếp hạng (`Ranked Passages`), trong đó các đoạn văn có điểm tương đồng cao nhất được ưu tiên.
+
+\subsubsection{Truy xuất Triple Lai (Hybrid Triple Retrieval)}
+
+Để cải thiện chất lượng của việc truy xuất triple, module này áp dụng phương pháp lai, kết hợp cả kỹ thuật truy xuất thưa (sparse) và dày đặc (dense):
+\begin{enumerate}
+    \item \textbf{Tuyến tính hóa Triple:} Tất cả các triple trong KG được chuyển đổi thành dạng câu văn bản tự nhiên (ví dụ: triple `(Metformin, có tác dụng phụ, buồn nôn)` thành câu "Metformin có tác dụng phụ là buồn nôn.").
+    \item \textbf{Truy xuất Sparse:} Sử dụng thuật toán BM25 trên tập các câu triple đã tuyến tính hóa để tìm các triple có từ khóa trùng khớp với truy vấn.
+    \item \textbf{Truy xuất Dense:} Sử dụng một mô hình embedding (ví dụ: NV-Embed-v2 như trong HippoRAG 2, hoặc một mô hình khác phù hợp với tiếng Việt) để tính toán độ tương đồng ngữ nghĩa giữa vector embedding của truy vấn và vector embedding của các câu triple đã tuyến tính hóa.
+    \item \textbf{Kết hợp Kết quả:} Điểm số từ hai phương pháp truy xuất (sparse và dense) được kết hợp lại bằng một kỹ thuật như Reciprocal Rank Fusion (RRF). RRF giúp tổng hợp thứ hạng từ nhiều nguồn khác nhau một cách hiệu quả, tạo ra một danh sách `Ranked Triples` cuối cùng có độ bao phủ và độ chính xác cao hơn so với việc chỉ sử dụng một phương pháp duy nhất.
+\end{enumerate}
+Lợi ích của phương pháp lai này là tận dụng được cả sự trùng khớp từ khóa chính xác của BM25 và khả năng hiểu ngữ nghĩa sâu sắc của các mô hình embedding, giúp tìm ra các triple liên quan ngay cả khi chúng sử dụng từ ngữ khác biệt so với truy vấn.
+
+\subsection{Module 2: Lọc Triple (Triple Filtering)}
+
+Danh sách `Ranked Triples` thu được từ Module 1 có thể chứa nhiễu hoặc các triple không hoàn toàn chính xác. Module Lọc Triple nhằm mục đích chọn lọc ra những facts cốt lõi, đáng tin cậy nhất liên quan đến truy vấn.
+
+Cơ chế lọc có thể được thực hiện theo nhiều cách, tùy thuộc vào yêu cầu về độ phức tạp và hiệu suất:
+\begin{itemize}
+    \item \textbf{Lọc dựa trên ngưỡng (Threshold-based):} Chỉ giữ lại các triple có điểm số kết hợp (từ RRF) vượt qua một ngưỡng nhất định. Đây là phương pháp đơn giản nhất.
+    \item \textbf{Lọc dựa trên LLM (LLM-based - Simplified):} Sử dụng một LLM nhỏ hơn hoặc một prompt đơn giản hơn so với Recognition Memory của HippoRAG 2 để đánh giá nhanh mức độ liên quan của top-N triple trong `Ranked Triples` với truy vấn. LLM có thể được yêu cầu trả về điểm số liên quan hoặc chỉ đơn giản là phân loại (liên quan/không liên quan).
+    \item \textbf{Lọc dựa trên mô hình phân loại (Classifier-based):} Huấn luyện một mô hình phân loại (ví dụ: cross-encoder nhỏ) để dự đoán xác suất một triple là liên quan đến một truy vấn.
+\end{itemize}
+Kết quả của module này là một tập hợp các triple đã được lọc (`Filtered Triples`), được coi là những bằng chứng cấu trúc đáng tin cậy nhất để hỗ trợ quá trình trả lời câu hỏi.
+
+\subsection{Module 3: Xếp hạng lại Passage và Mở rộng Ngữ cảnh (Passage Reranking \& Context Expansion)}
+
+Module này thực hiện hai nhiệm vụ quan trọng nhằm nâng cao chất lượng ngữ cảnh sẽ được cung cấp cho LLM: xếp hạng lại các passage đã truy xuất và mở rộng ngữ cảnh bằng cách khai thác cấu trúc cục bộ của KG.
+
+\subsubsection{Xếp hạng lại Passage dựa trên Triple (Triple-based Passage Reranking)}
+
+Phương pháp này sử dụng các `Filtered Triples` (facts đáng tin cậy) để đánh giá lại và điều chỉnh thứ hạng của `Ranked Passages`:
+\begin{enumerate}
+    \item \textbf{Xác định sự Hiện diện:} Đối với mỗi passage trong `Ranked Passages`, kiểm tra xem nó có chứa các thực thể (subject/object) hoặc mối quan hệ từ các `Filtered Triples` hay không.
+    \item \textbf{Tính điểm Hỗ trợ:} Gán một điểm số bổ sung cho mỗi passage dựa trên số lượng hoặc tầm quan trọng của các `Filtered Triples` mà nó hỗ trợ hoặc chứa đựng.
+    \item \textbf{Kết hợp Điểm và Rerank:} Kết hợp điểm tương đồng ban đầu của passage (từ Module 1) với điểm hỗ trợ từ triple (ví dụ: thông qua phép cộng có trọng số) để tính ra điểm số cuối cùng. Sắp xếp lại các passage dựa trên điểm số cuối cùng này.
+\end{enumerate}
+Lợi ích chính là ưu tiên các passage không chỉ liên quan đến truy vấn mà còn được xác thực bởi các facts đáng tin cậy từ KG, giúp giảm nhiễu và tăng độ chính xác của ngữ cảnh đầu vào cho LLM.
+
+\subsubsection{Mở rộng Đồ thị Cục bộ (Lightweight Graph Expansion)}
+
+Để bổ sung thêm thông tin liên quan mà có thể bị bỏ sót trong các bước truy xuất ban đầu, module này thực hiện một bước mở rộng nhẹ nhàng trên KG:
+\begin{enumerate}
+    \item \textbf{Xác định Thực thể Cốt lõi:} Lấy các thực thể (subject và object) từ tập `Filtered Triples`.
+    \item \textbf{Tìm kiếm 1-hop:} Từ các thực thể cốt lõi này, thực hiện một truy vấn tìm kiếm đơn giản trên KG để tìm tất cả các triple kết nối trực tiếp với chúng (các triple cách 1 bước nhảy - 1-hop neighbors).
+    \item \textbf{Thu thập Thông tin Hàng xóm:} Thu thập các triple 1-hop tìm được. Có thể tùy chọn lấy thêm các Phrase Node hoặc Passage Node được kết nối trực tiếp với các triple/thực thể này.
+\end{enumerate}
+Thông tin thu thập được từ bước mở rộng này (gọi là `Expanded Context`) sẽ được sử dụng trong module tiếp theo để làm giàu thêm ngữ cảnh cho LLM. Phương pháp này khôi phục một phần khả năng suy luận đa bước mà không cần đến sự phức tạp của PPR.
+
+\subsection{Module 4: Chuẩn bị Ngữ cảnh và Tạo Câu trả lời (Context Preparation \& Answer Generation)}
+
+Đây là module cuối cùng trong pipeline online, nơi tất cả thông tin đã thu thập và xử lý được tổng hợp lại để tạo thành prompt đầu vào cho LLM, và sau đó LLM sẽ tạo ra câu trả lời cuối cùng.
+
+\subsubsection{Đưa Triple và Ngữ cảnh Mở rộng vào Prompt LLM}
+
+Việc xây dựng prompt hiệu quả là rất quan trọng. Ngữ cảnh cung cấp cho LLM bao gồm:
+\begin{itemize}
+    \item \textbf{Truy vấn gốc} của người dùng.
+    \item \textbf{Top-K Passages:} Các đoạn văn bản có thứ hạng cao nhất sau khi đã được xếp hạng lại ở Module 3.
+    \item \textbf{Filtered Triples (dạng văn bản):} Các triple trong tập `Filtered Triples` được tuyến tính hóa thành các câu văn bản tự nhiên (ví dụ: "Metformin có tác dụng phụ là buồn nôn."). Việc này giúp LLM dễ dàng hiểu và sử dụng các facts cấu trúc này.
+    \item \textbf{Expanded Context (tùy chọn, dạng văn bản):} Nếu thực hiện Mở rộng Đồ thị Cục bộ, các triple hoặc thông tin hàng xóm thu thập được cũng được tuyến tính hóa và đưa vào prompt.
+\end{itemize}
+Cách trình bày các thành phần này trong prompt (ví dụ: phân tách rõ ràng các loại thông tin, sử dụng các chỉ dẫn cụ thể) có thể ảnh hưởng đến chất lượng câu trả lời.
+
+\subsubsection{Tạo Câu trả lời bằng LLM}
+
+LLM nhận prompt chứa đầy đủ ngữ cảnh đã chuẩn bị và thực hiện nhiệm vụ tạo ra câu trả lời cuối cùng cho truy vấn của người dùng. Nhờ có sự kết hợp của các passage liên quan (đã được rerank), các facts cấu trúc đáng tin cậy (filtered triples), và có thể cả ngữ cảnh mở rộng từ đồ thị, LLM có khả năng tạo ra câu trả lời chính xác, đầy đủ và bám sát vào bằng chứng hơn so với các hệ thống RAG chỉ dựa trên passage.
+
+\section{Đóng góp chính}
+Luận văn này đóng góp vào lĩnh vực RAG và xử lý ngôn ngữ tự nhiên tiếng Việt thông qua các khía cạnh sau:
+\begin{enumerate}
+    \item Nghiên cứu và tìm hiểu cơ chế hoạt động chi tiết của HippoRAG 2 – một framework RAG tăng cường trí nhớ dài hạn dựa trên Personalized PageRank.
+    \item Đề xuất quy trình tích hợp HippoRAG 2 với dữ liệu tiếng Việt, cụ thể là bộ dữ liệu VIMQA – một benchmark chuẩn cho bài toán multi-hop QA tiếng Việt.
+    \item Thử nghiệm khả năng truy xuất và lập luận đa bước của HippoRAG 2 trong môi trường tiếng Việt, từ đó đánh giá hiệu quả và đưa ra các cải tiến tiềm năng.
+    \item Đề xuất và phân tích một pipeline RAG đơn giản hóa, kết hợp truy xuất passage và triple, cùng các module cải tiến như truy xuất triple lai, xếp hạng lại passage dựa trên triple, và mở rộng đồ thị cục bộ, như một giải pháp thay thế hiệu quả và dễ triển khai hơn.
+\end{enumerate}
+
+\section{Phân tích So sánh}
+So với các phương pháp RAG truyền thống chỉ dựa trên truy xuất văn bản, pipeline được đề xuất trong luận văn này (lấy cảm hứng từ HippoRAG 2) mang lại lợi thế nhờ việc tích hợp kiến thức cấu trúc từ KG. Việc sử dụng triple giúp cung cấp các facts chính xác và mối quan hệ rõ ràng, bổ sung cho ngữ cảnh đôi khi mơ hồ hoặc không đầy đủ từ các đoạn văn bản. Các module cải tiến như xếp hạng lại passage dựa trên triple và mở rộng đồ thị cục bộ giúp tăng cường hơn nữa sự kết hợp này, đảm bảo ngữ cảnh cung cấp cho LLM vừa phong phú vừa đáng tin cậy.
+
+So với HippoRAG 2 gốc, pipeline đơn giản hóa loại bỏ sự phức tạp của thuật toán PPR, giúp giảm chi phí tính toán và yêu cầu về tài nguyên. Mặc dù có thể mất đi một phần khả năng suy luận sâu trên toàn bộ đồ thị, các cải tiến được đề xuất như mở rộng đồ thị cục bộ nhằm khôi phục một phần khả năng này một cách hiệu quả hơn. Việc tập trung vào tinh chỉnh các mô hình retriever và reranker cho dữ liệu tiếng Việt cũng là một điểm khác biệt quan trọng, giúp tối ưu hóa hiệu suất cho ngôn ngữ và miền ứng dụng cụ thể.
+
+\section{Hướng phát triển Tương lai}
+Các hướng nghiên cứu và phát triển tiềm năng trong tương lai bao gồm:
+\begin{itemize}
+    \item \textbf{Tối ưu hóa các Module Cải tiến:} Nghiên cứu sâu hơn về các tham số và kỹ thuật cụ thể cho từng module cải tiến (ví dụ: cách kết hợp điểm trong reranking, độ sâu của mở rộng đồ thị cục bộ) để tối ưu hóa hiệu suất tổng thể.
+    \item \textbf{Đánh giá trên Bộ dữ liệu Lớn hơn và Đa dạng hơn:} Mở rộng thử nghiệm trên các bộ dữ liệu tiếng Việt khác nhau và các loại truy vấn đa dạng hơn để đánh giá khả năng khái quát hóa của pipeline.
+    \item \textbf{Tích hợp Phản hồi Người dùng (User Feedback):} Xây dựng cơ chế cho phép hệ thống học hỏi từ phản hồi của người dùng về chất lượng câu trả lời để liên tục cải thiện các thành phần truy xuất và xếp hạng.
+    \item \textbf{Khám phá các Kỹ thuật Xây dựng KG Tiên tiến hơn:} Nghiên cứu các phương pháp mới để xây dựng KG từ dữ liệu tiếng Việt một cách tự động và chính xác hơn, bao gồm cả việc xử lý các mối quan hệ phức tạp và thông tin ngầm định.
+    \item \textbf{So sánh với các Kiến trúc RAG Mới nổi khác:} Đối chiếu hiệu suất của pipeline đề xuất với các kiến trúc RAG mới nhất trong cộng đồng nghiên cứu.
+\end{itemize}
+
+\section{Kết luận}
+Luận văn này đã trình bày một nghiên cứu chi tiết về framework HippoRAG 2 và đề xuất một pipeline RAG đơn giản hóa, kết hợp hiệu quả giữa truy xuất văn bản và kiến thức cấu trúc từ đồ thị tri thức, đặc biệt phù hợp cho ứng dụng với dữ liệu tiếng Việt. Bằng cách phân tích các thành phần cốt lõi của HippoRAG 2 và đề xuất các module cải tiến như truy xuất triple lai, xếp hạng lại passage dựa trên triple, và mở rộng đồ thị cục bộ, luận văn đã đưa ra một giải pháp cân bằng giữa hiệu quả và độ phức tạp. Các thử nghiệm và phân tích cho thấy tiềm năng của việc tích hợp kiến thức cấu trúc để nâng cao chất lượng của các hệ thống Hỏi-Đáp dựa trên RAG. Các hướng phát triển trong tương lai hứa hẹn sẽ tiếp tục cải thiện hiệu suất và khả năng ứng dụng của phương pháp này.
+
+\end{document}
+

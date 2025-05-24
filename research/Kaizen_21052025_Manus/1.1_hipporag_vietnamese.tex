@@ -1,0 +1,279 @@
+\documentclass[../main.tex]{subfiles}
+\begin{document}
+
+\section{Overview}
+HippoRAG 2 là một framework Retrieval-Augmented Generation (RAG) tiên tiến lấy cảm hứng từ cơ chế bộ nhớ dài hạn của con người, được thiết kế để giúp các Mô hình Ngôn ngữ Lớn (LLM) liên tục tích hợp kiến thức từ các tài liệu bên ngoài. Framework này giải quyết những hạn chế chính trong các hệ thống RAG truyền thống bằng cách kết hợp các thành phần lấy cảm hứng từ thần kinh học, mô phỏng quá trình ghi nhớ của con người. HippoRAG 2 hoạt động trong hai giai đoạn chính:
+
+\begin{enumerate}
+\item \textbf{Offline Indexing – Giai đoạn Xây dựng Bộ nhớ:} Xây dựng hệ thống bộ nhớ dài hạn cho framework bằng cách tạo ra một Đồ thị Tri thức (Knowledge Graph - KG) từ các tài liệu văn bản.
+\item \textbf{Online Retrieval \& QA – Giai đoạn Truy hồi và Phản hồi:} Sử dụng KG đã xây dựng để truy xuất thông tin dựa trên truy vấn của người dùng và tạo ra các phản hồi thông minh.
+\end{enumerate}
+
+Luồng công việc tổng thể được minh họa trong Hình 1, thể hiện hai giai đoạn chính: xây dựng bộ nhớ và truy hồi + phản hồi. HippoRAG 2 được xây dựng dựa trên framework HippoRAG ban đầu nhưng giới thiệu một số cải tiến quan trọng nhằm tăng cường sự phù hợp với cơ chế bộ nhớ của con người, bao gồm việc tích hợp liền mạch thông tin khái niệm và ngữ cảnh, truy xuất nhận thức ngữ cảnh tốt hơn, và bộ nhớ nhận diện để cải thiện việc lựa chọn nút hạt giống.
+
+\section{Offline Indexing – Giai đoạn Xây dựng Bộ nhớ}
+Trong giai đoạn Offline Indexing, nhiệm vụ chính là xây dựng hệ thống bộ nhớ dài hạn bằng cách tạo ra một Đồ thị Tri thức (KG) từ các tài liệu văn bản. Các module trong giai đoạn này làm việc cùng nhau để trích xuất, xử lý và tổ chức thông tin một cách có cấu trúc nhằm hỗ trợ các bước truy xuất trong tương lai.
+
+\subsection{Module 1: Phân đoạn Tài liệu}
+Phân đoạn tài liệu là một bước quan trọng nhằm chia nhỏ tài liệu gốc thành các đoạn ngắn hơn, mỗi đoạn mang một ý nghĩa logic riêng biệt. HippoRAG 2 sử dụng các Mô hình Ngôn ngữ Lớn (LLM), như Qwen-1.5B-Instruct, để nâng cao khả năng phân đoạn:
+
+\begin{itemize}
+\item Tách văn bản thành các câu riêng biệt, giữ nguyên ý nghĩa.
+\item Sử dụng LLM để đánh giá ngữ cảnh và quyết định việc hợp nhất hay tách câu dựa trên cấu trúc logic.
+\item Kết quả là các đoạn văn mạch lạc, ngắn gọn, dễ quản lý và được tối ưu hóa cho việc trích xuất triple.
+\end{itemize}
+
+Quá trình phân đoạn này đặc biệt quan trọng vì nó ảnh hưởng trực tiếp đến chất lượng của việc trích xuất triple và xây dựng đồ thị tri thức sau này. Bằng cách tạo ra các đoạn văn có tính liên kết logic, hệ thống đảm bảo rằng các triple được trích xuất duy trì được ngữ cảnh và mối quan hệ ngữ nghĩa phù hợp.
+
+\subsection{Module 2: OpenIE by LLM (Trích xuất Triple)}
+Module OpenIE by LLM sử dụng các mô hình mạnh mẽ như Llama-3.3-70B để trích xuất triple từ mỗi đoạn văn:
+
+\begin{itemize}
+\item Triple tuân theo định dạng (subject, relation, object).
+\item Ví dụ: Từ câu "Elon Musk đã sáng lập SpaceX," hệ thống trích xuất ("Elon Musk", "đã sáng lập", "SpaceX").
+\item Mỗi triple tạo ra hai Phrase Node (subject và object) và một Relation Edge (có hướng từ subject đến object).
+\item Hệ thống áp dụng phương pháp "schema-less open KG", cho phép trích xuất bất kỳ loại quan hệ nào mà không bị giới hạn bởi các ontology được định nghĩa trước.
+\end{itemize}
+
+Phương pháp này mang lại những lợi thế đáng kể so với các hệ thống trích xuất thông tin truyền thống:
+\begin{itemize}
+\item Không giống như các phương pháp trích xuất dựa trên quy tắc hoặc thống kê, LLM có thể hiểu ngữ cảnh và trích xuất các mối quan hệ phức tạp.
+\item Hệ thống không bị giới hạn bởi các tập hợp quan hệ được định nghĩa trước, cho phép biểu diễn thông tin đa dạng.
+\item Phương pháp không có schema giúp KG linh hoạt và dễ dàng mở rộng với kiến thức mới mà không cần thiết kế lại schema.
+\end{itemize}
+
+\subsection{Module 3: Synonym Detection by Embedding}
+Sau khi trích xuất triple, module này sử dụng các kỹ thuật embedding (Word2Vec, GloVe, BERT) để phát hiện các từ/cụm từ đồng nghĩa:
+
+\begin{itemize}
+\item Tính toán độ tương đồng cosine giữa các embedding của các Phrase Node khác nhau.
+\item Tạo Synonym Edge trong KG khi độ tương đồng vượt quá ngưỡng được định nghĩa trước.
+\item Ví dụ: Kết nối "NYC" với "New York City" thông qua Synonym Edge.
+\end{itemize}
+
+Module này mang lại một số lợi ích chính:
+\begin{itemize}
+\item Giúp hệ thống nhận diện các cách diễn đạt khác nhau của cùng một khái niệm.
+\item Nâng cao khả năng truy vấn khi người dùng sử dụng từ đồng nghĩa hoặc biến thể của khái niệm.
+\item Tạo kết nối giữa thông tin tương tự nhau trong các tài liệu khác nhau.
+\item Không phụ thuộc vào từ điển đồng nghĩa cố định, có thể phát hiện các mối quan hệ đồng nghĩa dựa trên ngữ nghĩa thực tế.
+\item Cho phép kết nối thông tin giữa các tài liệu sử dụng thuật ngữ khác nhau nhưng truyền tải cùng một ý nghĩa.
+\end{itemize}
+
+\subsection{Module 4: Dense-Sparse Integration}
+Module này kết hợp hai loại node trong KG:
+
+\begin{itemize}
+\item \textbf{Phrase nodes (sparse coding):} Lưu trữ các khái niệm cô đọng (subjects và objects từ triple).
+\item \textbf{Passage nodes (dense coding):} Lưu trữ toàn bộ đoạn văn gốc.
+\item Liên kết chúng thông qua \emph{Context edges} có nhãn "contains," có hướng từ Passage Node đến Phrase Node.
+\end{itemize}
+
+Thiết kế này dựa trên lý thuyết dense và sparse coding trong nhận thức của con người:
+\begin{itemize}
+\item Sparse coding (Phrase Nodes): Hiệu quả về mặt lưu trữ, thuận lợi cho việc suy luận.
+\item Dense coding (Passage Nodes): Bảo toàn ngữ cảnh đầy đủ, giàu thông tin chi tiết.
+\item Kết hợp cả hai giúp cân bằng giữa hiệu quả xử lý và độ chính xác của thông tin.
+\end{itemize}
+
+Sự tích hợp này giải quyết những hạn chế chính của HippoRAG ban đầu:
+\begin{itemize}
+\item Khắc phục phương pháp tập trung vào thực thể (entity-centric) vốn bỏ qua nhiều tín hiệu ngữ cảnh.
+\item Cải thiện đáng kể khả năng truy xuất thông tin so với các phương pháp chỉ dựa vào vector embedding.
+\item Cho phép hệ thống vừa thực hiện suy luận nhanh (thông qua Phrase Nodes) vừa truy xuất thông tin chi tiết chính xác (thông qua Passage Nodes).
+\end{itemize}
+
+Sự tích hợp dense-sparse đại diện cho một cải tiến cơ bản trong HippoRAG 2, giải quyết sự đánh đổi giữa khái niệm và ngữ cảnh tồn tại trong nhiều hệ thống biểu diễn kiến thức. Bằng cách kết hợp cả sparse coding (để biểu diễn khái niệm hiệu quả) và dense coding (để cung cấp thông tin ngữ cảnh phong phú), hệ thống đạt được sự cân bằng gần hơn với cách tổ chức bộ nhớ của con người.
+
+\section{Online Retrieval \& QA – Giai đoạn Truy hồi và Phản hồi}
+Giai đoạn này sử dụng KG đã xây dựng để trả lời câu hỏi của người dùng thông qua một chuỗi các module xử lý:
+
+\subsection{Module 1: Retriever}
+Module Retriever thực hiện việc truy xuất thông tin ban đầu dựa trên truy vấn của người dùng:
+
+\begin{itemize}
+\item Sử dụng các mô hình embedding (như NV-Embed-v2) để truy xuất cả passages và triples từ KG.
+\item Triển khai phương pháp "Query to Triple" thay vì chỉ sử dụng Named Entity Recognition (NER).
+\item So khớp toàn bộ truy vấn với các triple trong KG sử dụng embedding.
+\end{itemize}
+
+Phương pháp này mang lại những lợi thế đáng kể:
+\begin{itemize}
+\item "Query to Triple" cung cấp ngữ cảnh phong phú hơn so với việc chỉ trích xuất thực thể.
+\item Triple chứa các mối quan hệ cơ bản giữa các khái niệm, giúp hiểu rõ hơn ý định của truy vấn.
+\item Cải thiện Recall@5 trung bình 12,5\% so với phương pháp NER-to-node.
+\item Giải quyết hạn chế của các phương pháp tập trung vào thực thể vốn bỏ qua các tín hiệu ngữ cảnh quan trọng.
+\end{itemize}
+
+\subsection{Module 2: Fine-Tuning Reranking Models}
+Module này áp dụng các mô hình học sâu đã được fine-tuned để xếp hạng lại kết quả của Retriever:
+
+\begin{itemize}
+\item Đánh giá mức độ liên quan dựa trên ngữ nghĩa, ngữ cảnh và đặc điểm của câu hỏi.
+\item Ưu tiên các đoạn văn có độ chính xác cao nhất.
+\item Sử dụng các kiến trúc neural tiên tiến để hiểu mối quan hệ giữa truy vấn và các đoạn văn ứng viên.
+\end{itemize}
+
+Quá trình xếp hạng lại cải thiện đáng kể chất lượng truy xuất bằng cách:
+\begin{itemize}
+\item Xem xét các mối quan hệ ngữ nghĩa sâu hơn ngoài việc khớp từ khóa đơn giản.
+\item Kết hợp hiểu biết ngữ cảnh của cả truy vấn và các đoạn văn được truy xuất.
+\item Điều chỉnh thứ hạng dựa trên loại câu hỏi cụ thể đang được đặt ra.
+\end{itemize}
+
+\subsection{Module 3: Recognition Memory (Triple Filtering)}
+Module Recognition Memory phân tích và lọc bỏ các triple không liên quan đến câu hỏi:
+
+\begin{itemize}
+\item Sử dụng LLM (như GPT-3, T5) để phân tích và lọc các triple không liên quan.
+\item Giảm nhiễu, chỉ giữ lại thông tin cần thiết.
+\item Dựa trên các quá trình bổ sung trong bộ nhớ con người: recall (gợi nhớ chủ động) và recognition (nhận diện với gợi ý).
+\item Sử dụng DSPy MIPROv2 optimizer và Llama-3.3-70B-Instruct để tối ưu hóa prompt cho việc lọc triple.
+\end{itemize}
+
+Module này mang lại những lợi ích chính:
+\begin{itemize}
+\item Cải thiện chất lượng của các seed node cho thuật toán PageRank.
+\item Giảm nhiễu trong quá trình truy vấn, tăng độ chính xác của kết quả cuối cùng.
+\item Mô phỏng quá trình nhận diện trong bộ nhớ con người, giúp xác định thông tin liên quan khi được gợi ý.
+\end{itemize}
+
+\subsection{Module 4: Assigning Seed Node Weights}
+Module này gán trọng số cho các triple và passages sau khi lọc:
+
+\begin{itemize}
+\item Gán trọng số cho các node được chọn làm seed node cho thuật toán PageRank.
+\item Phrase nodes: Được chọn từ các triple đã lọc, với trọng số dựa trên điểm xếp hạng trung bình.
+\item Passage nodes: Tất cả đều được chọn làm seed node, với trọng số tỷ lệ thuận với độ tương đồng embedding, điều chỉnh bởi hệ số cân bằng (mặc định là 0,05).
+\end{itemize}
+
+Lý do thiết kế bao gồm:
+\begin{itemize}
+\item Cân bằng ảnh hưởng giữa phrase node và passage node trong quá trình PageRank.
+\item Kích hoạt rộng rãi passage node cải thiện khả năng suy luận đa bước.
+\item Cho phép điều chỉnh linh hoạt mức độ ảnh hưởng của thông tin ngữ cảnh (passage) và thông tin cô đọng (phrase).
+\item Cải thiện hiệu suất trên nhiều loại truy vấn khác nhau, từ đơn giản đến phức tạp.
+\end{itemize}
+
+\subsection{Module 5: Personalized PageRank (PPR)}
+Module PPR chạy trên KG để tìm các node có kết nối ngữ nghĩa mạnh nhất với truy vấn:
+
+\begin{itemize}
+\item Sử dụng thuật toán Personalized PageRank trên KG để tìm các node có liên kết ngữ nghĩa mạnh nhất với truy vấn.
+\item Lan truyền trọng số từ các seed node thông qua các cạnh của đồ thị.
+\item Các node có điểm PageRank cao nhất được coi là có liên quan nhất đến truy vấn.
+\end{itemize}
+
+Phương pháp này mang lại những lợi thế đáng kể:
+\begin{itemize}
+\item Mô phỏng khả năng liên kết (associativity) trong bộ nhớ con người.
+\item Cho phép tìm thông tin liên quan thông qua suy luận đa bước (multi-hop reasoning).
+\item Vượt trội so với phương pháp truy xuất vector đơn thuần trong các nhiệm vụ đòi hỏi suy luận đa bước.
+\item Cải thiện Recall@5 lên 5,0\% và 13,9\% trên MuSiQue và 2Wiki so với dense retriever mạnh nhất (NV-Embed-v2).
+\end{itemize}
+
+\subsection{Module 6: QA Reading}
+Module QA Reading sử dụng LLM để đọc các đoạn văn được ưu tiên và tổng hợp câu trả lời cuối cùng:
+
+\begin{itemize}
+\item Sử dụng LLM để đọc các đoạn văn có thứ hạng cao nhất từ PPR.
+\item Tổng hợp thông tin từ các đoạn văn để tạo ra câu trả lời cuối cùng.
+\item Mô hình không chỉ trích xuất mà còn diễn giải và kết nối thông tin để đưa ra câu trả lời chính xác, có ngữ cảnh.
+\end{itemize}
+
+Phương pháp này mang lại những lợi ích chính:
+\begin{itemize}
+\item Tận dụng khả năng tổng hợp và suy luận của LLM để tạo ra câu trả lời chất lượng cao.
+\item Cung cấp ngữ cảnh đầy đủ cho LLM thông qua các đoạn văn được chọn lọc cẩn thận.
+\item Đạt điểm F1 cao hơn 2,8\% so với phương pháp dense retrieval tốt nhất (NV-Embed-v2).
+\item Hiệu quả trên các loại nhiệm vụ khác nhau: factual memory, sense-making, và associativity.
+\end{itemize}
+
+\section{Các đóng góp chính của đồ án}
+\subsection{Đổi mới Kỹ thuật}
+\begin{enumerate}
+\item \textbf{Dense-Sparse Integration:} HippoRAG 2 giới thiệu một phương pháp mới cho việc biểu diễn kiến thức bằng cách kết hợp sparse coding (phrase node) và dense coding (passage node), giải quyết sự đánh đổi giữa khái niệm và ngữ cảnh tồn tại trong nhiều hệ thống kiến thức. Sự tích hợp này cho phép hệ thống cân bằng giữa suy luận hiệu quả và truy xuất thông tin chi tiết.
+
+\item \textbf{Phương pháp Query to Triple:} Không giống như các phương pháp tập trung vào thực thể truyền thống, HippoRAG 2 triển khai phương pháp "Query to Triple" khớp toàn bộ truy vấn với các triple trong đồ thị tri thức. Điều này cung cấp ngữ cảnh phong phú hơn và cải thiện hiệu suất truy xuất trung bình 12,5\% so với các phương pháp dựa trên thực thể.
+
+\item \textbf{Recognition Memory:} Lấy cảm hứng từ quá trình bộ nhớ của con người, HippoRAG 2 kết hợp thành phần bộ nhớ nhận diện lọc các triple bằng LLM. Điều này giảm nhiễu trong quá trình truy xuất và cải thiện chất lượng của các seed node cho thuật toán PageRank.
+
+\item \textbf{Cân bằng Reset Probabilities:} Hệ thống giới thiệu một phương pháp mới để cân bằng ảnh hưởng của phrase node và passage node trong thuật toán Personalized PageRank, sử dụng hệ số trọng số để tối ưu hóa hiệu suất trên các loại truy vấn khác nhau.
+\end{enumerate}
+
+\subsection{Cải thiện Hiệu suất}
+\begin{enumerate}
+\item \textbf{Hiệu suất Toàn diện:} HippoRAG 2 đạt được hiệu suất tốt nhất trên cả ba loại benchmark: factual memory, sense-making, và associativity. Không giống như các phương pháp RAG tăng cường cấu trúc trước đây vốn xuất sắc trong một lĩnh vực nhưng suy giảm ở các lĩnh vực khác, HippoRAG 2 duy trì hiệu suất mạnh mẽ trên tất cả các nhiệm vụ.
+
+\item \textbf{Tăng cường Bộ nhớ Liên kết:} Hệ thống đạt được cải thiện 7\% trong các nhiệm vụ bộ nhớ liên kết so với mô hình embedding tiên tiến nhất, chứng minh khả năng vượt trội trong việc kết nối thông tin liên quan trên các tài liệu.
+
+\item \textbf{Chất lượng Truy xuất:} HippoRAG 2 cải thiện Recall@5 lên 5,0\% và 13,9\% trên các bộ dữ liệu MuSiQue và 2Wiki so với dense retriever mạnh nhất, thể hiện hiệu quả của nó trong các nhiệm vụ suy luận đa bước.
+
+\item \textbf{Tính linh hoạt:} Hệ thống thể hiện sự mạnh mẽ trên các retriever khác nhau và tương thích với cả LLM mã nguồn mở và độc quyền, cho phép linh hoạt sử dụng rộng rãi.
+\end{enumerate}
+
+\subsection{Đóng góp Lý thuyết}
+\begin{enumerate}
+\item \textbf{Thiết kế Lấy cảm hứng từ Thần kinh học:} HippoRAG 2 thúc đẩy lĩnh vực bằng cách triển khai các thành phần mô phỏng chặt chẽ hơn các quá trình bộ nhớ của con người, bao gồm tích hợp sparse và dense coding, bộ nhớ nhận diện, và truy xuất liên kết.
+
+\item \textbf{Continual Learning Không tham số:} Framework cung cấp một phương pháp tiếp cận đầy hứa hẹn cho continual learning không tham số cho LLM, cho phép chúng liên tục thu thập, tổ chức và tận dụng kiến thức mà không cần sửa đổi tham số của chúng.
+
+\item \textbf{Hệ thống Bộ nhớ Giống con người:} Bằng cách giải quyết cả khả năng ghi nhớ sự kiện và khả năng suy luận phức tạp, HippoRAG 2 đại diện cho một bước tiến đáng kể hướng tới việc tạo ra các hệ thống AI với khả năng bộ nhớ giống con người hơn.
+\end{enumerate}
+
+\section{Phân tích So sánh với Các Phương pháp Khác}
+\subsection{So sánh với RAG Truyền thống}
+Các hệ thống RAG truyền thống chủ yếu dựa vào vector embedding để truy xuất, điều này hạn chế khả năng nắm bắt bản chất kết nối của bộ nhớ con người. HippoRAG 2 giải quyết những hạn chế này thông qua:
+
+\begin{itemize}
+\item \textbf{Tăng cường Khả năng Liên kết:} Trong khi RAG truyền thống gặp khó khăn với suy luận đa bước, HippoRAG 2 xuất sắc trong các nhiệm vụ đòi hỏi kết nối giữa nhiều mảnh thông tin, đạt được cải thiện trung bình 7 điểm so với RAG tiêu chuẩn trong các nhiệm vụ liên kết.
+
+\item \textbf{Cải thiện Khả năng Hiểu:} HippoRAG 2 hiểu và xử lý tốt hơn các ngữ cảnh phức tạp, dài so với các hệ thống RAG truyền thống.
+
+\item \textbf{Tính linh hoạt:} Framework có thể được sử dụng với nhiều dense retriever khác nhau, liên tục cải thiện hiệu suất so với dense retrieval thuần túy.
+\end{itemize}
+
+\subsection{So sánh với Các Phương pháp RAG Tăng cường Cấu trúc}
+Một số phương pháp RAG tăng cường cấu trúc đã được đề xuất để giải quyết hạn chế trong RAG truyền thống:
+
+\begin{itemize}
+\item \textbf{RAPTOR và GraphRAG:} Các phương pháp này sử dụng LLM để tạo tóm tắt, nhưng hiệu suất của chúng giảm đáng kể trong các nhiệm vụ QA đơn giản và đa bước do nhiễu được đưa vào corpus retrieval.
+
+\item \textbf{LightRAG:} Sử dụng đồ thị tri thức để mở rộng corpus retrieval, trong khi HippoRAG 2 sử dụng KG để hỗ trợ quá trình retrieval, giảm nhiễu do LLM tạo ra.
+
+\item \textbf{HippoRAG ban đầu:} HippoRAG 2 giải quyết những hạn chế của framework ban đầu liên quan đến mất ngữ cảnh trong quá trình indexing và inference, cũng như khó khăn trong semantic matching.
+\end{itemize}
+
+\subsection{Kết quả Thực nghiệm}
+Các thí nghiệm toàn diện chứng minh hiệu suất vượt trội của HippoRAG 2:
+
+\begin{itemize}
+\item Đạt điểm F1 trung bình cao nhất trên tất cả các loại benchmark.
+\item Vượt trội NV-Embed-v2 9,5\% F1 trên 2Wiki và 3,1\% trên bộ dữ liệu thách thức LV-Eval.
+\item Thể hiện cải thiện nhất quán so với tất cả các phương pháp khác trên gần như tất cả các cài đặt, xác nhận phương pháp tiếp cận lấy cảm hứng từ tâm lý thần kinh học.
+\item Duy trì hiệu suất mạnh mẽ bất kể dense retriever cụ thể nào được sử dụng.
+\end{itemize}
+
+\section{Hướng Phát triển Tương lai}
+Mặc dù HippoRAG 2 đại diện cho một bước tiến đáng kể trong các hệ thống RAG, một số hướng nghiên cứu tương lai đầy hứa hẹn bao gồm:
+
+\begin{enumerate}
+\item \textbf{Tăng cường Bộ nhớ Episodic:} Khám phá các phương pháp truy xuất dựa trên đồ thị để tăng cường khả năng bộ nhớ episodic cho LLM trong các cuộc hội thoại dài.
+
+\item \textbf{Tích hợp Đa phương tiện:} Mở rộng framework để kết hợp thông tin đa phương tiện (văn bản, hình ảnh, âm thanh) vào đồ thị tri thức.
+
+\item \textbf{Cập nhật Kiến thức Động:} Phát triển cơ chế để cập nhật hiệu quả đồ thị tri thức khi có thông tin mới, mà không cần xây dựng lại hoàn toàn.
+
+\item \textbf{Cá nhân hóa:} Điều chỉnh framework để kết hợp kiến thức và sở thích cụ thể của người dùng cho các phản hồi cá nhân hóa hơn.
+
+\item \textbf{Hiệu quả Tính toán:} Tối ưu hóa framework để giảm yêu cầu tính toán trong khi vẫn duy trì hiệu suất, làm cho nó dễ tiếp cận hơn cho các môi trường hạn chế tài nguyên.
+\end{enumerate}
+
+\section{Kết luận}
+HippoRAG 2 đại diện cho một bước tiến đáng kể trong việc phát triển các hệ thống RAG gần hơn với bộ nhớ dài hạn của con người. Bằng cách kết hợp thuật toán Personalized PageRank với tích hợp passage sâu hơn và sử dụng LLM hiệu quả hơn trong quá trình online, framework đạt được những cải thiện toàn diện so với các phương pháp RAG tiêu chuẩn trên các nhiệm vụ factual, sense-making, và associative memory.
+
+Thiết kế lấy cảm hứng từ thần kinh học của framework, kết hợp các yếu tố như dense-sparse integration, recognition memory, và balanced reset probabilities, cho phép nó vượt qua những hạn chế trong các phương pháp trước đây và đạt được hiệu suất tốt nhất trên các benchmark đa dạng. Công trình này không chỉ thúc đẩy lĩnh vực retrieval-augmented generation mà còn mở đường cho continual learning không tham số cho LLM, đưa các hệ thống AI gần hơn với khả năng bộ nhớ giống con người.
+
+Khi nghiên cứu trong lĩnh vực này tiếp tục phát triển, HippoRAG 2 cung cấp một nền tảng vững chắc để phát triển các hệ thống bộ nhớ ngày càng tinh vi cho AI, cuối cùng nâng cao khả năng liên tục thu thập, tổ chức và tận dụng kiến thức theo cách gần hơn với trí thông minh của con người.
+
+\end{document}
