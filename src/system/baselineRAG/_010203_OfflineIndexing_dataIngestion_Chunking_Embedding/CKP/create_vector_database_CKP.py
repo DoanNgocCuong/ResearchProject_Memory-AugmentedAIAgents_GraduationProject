@@ -9,10 +9,9 @@ It extracts answers and questions, creates embeddings, and stores them in Qdrant
 import os
 import pandas as pd
 from dotenv import load_dotenv
-from huggingface_hub import InferenceClient
+from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 from langchain_community.vectorstores import Qdrant
 from langchain.schema import Document
-import numpy as np
 
 # Load environment variables
 load_dotenv()
@@ -24,16 +23,9 @@ EMBEDDINGS_MODEL_NAME = os.getenv("EMBEDDINGS_MODEL_NAME", "sentence-transformer
 HUGGINGFACE_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "legal_rag")
 
-# Initialize HuggingFace client for embeddings
-client = InferenceClient(provider="hf-inference", api_key=HUGGINGFACE_API_KEY)
-
-def get_embedding(text):
-    """Get embedding for a single text using HuggingFace Inference API"""
-    return client.feature_extraction(model=EMBEDDINGS_MODEL_NAME, text=text)
-
 def create_vector_database(excel_file_path, collection_name=None):
     """
-    Create a vector database from an Excel file containing text data with metadata.
+    Create a vector database from an Excel file containing legal Q&A data.
     
     Args:
         excel_file_path (str): Path to the Excel file
@@ -49,36 +41,35 @@ def create_vector_database(excel_file_path, collection_name=None):
     # Load Excel data
     data = pd.read_excel(excel_file_path)
     
-    # Extract text and metadata columns
-    texts = data["text"].dropna().tolist()
-    doc_ids = data["doc_id"].dropna().tolist()
-    titles = data["title"].dropna().tolist()
+    # Extract and preprocess the "Câu hỏi" and "Đáp án" columns
+    questions = data["Câu hỏi"].dropna().tolist()
+    answers = data["Đáp án"].dropna().tolist()
     
-    # Ensure all columns have the same length
-    min_length = min(len(texts), len(doc_ids), len(titles))
-    if min_length != len(texts) or min_length != len(doc_ids) or min_length != len(titles):
-        print(f"Warning: Mismatch between number of texts ({len(texts)}), doc_ids ({len(doc_ids)}), and titles ({len(titles)})")
-        texts = texts[:min_length]
-        doc_ids = doc_ids[:min_length]
-        titles = titles[:min_length]
+    # Ensure questions and answers have the same length
+    if len(questions) != len(answers):
+        print(f"Warning: Mismatch between number of questions ({len(questions)}) and answers ({len(answers)})")
+        # Find the minimum length to avoid index errors
+        min_length = min(len(questions), len(answers))
+        questions = questions[:min_length]
+        answers = answers[:min_length]
     
-    print(f"Creating {len(texts)} document objects with metadata...")
-    # Create Document objects with metadata
+    print(f"Creating {len(answers)} document objects with metadata...")
+    # Add metadata to each chunk and create Document objects
     documents = [
         Document(
-            page_content=text,
-            metadata={
-                "source": excel_file_path,
-                "doc_id": doc_id,
-                "title": title
-            }
+            page_content=answer,
+            # metadata: tùy chọn? source: link excel
+            metadata={"source": excel_file_path, "question": question}
         )
-        for text, doc_id, title in zip(texts, doc_ids, titles)
+        for question, answer in zip(questions, answers)
     ]
     
-    print(f"Getting embeddings for {len(texts)} documents...")
-    # Get embeddings directly using the get_embedding function
-    embeddings = [get_embedding(text) for text in texts]
+    print(f"Initializing embeddings with model: {EMBEDDINGS_MODEL_NAME}")
+    # Generate embeddings using HuggingFaceInferenceAPIEmbeddings
+    embeddings = HuggingFaceInferenceAPIEmbeddings(
+        model_name=EMBEDDINGS_MODEL_NAME,
+        api_key=HUGGINGFACE_API_KEY
+    )
     
     print(f"Creating vector database in Qdrant collection: {collection_name}")
     # Create a vector database in Qdrant
@@ -120,19 +111,20 @@ def create_vector_database_from_text_files(text_dir, collection_name=None):
                     with open(file_path, 'r', encoding='utf-8') as f:
                         content = f.read()
                     
-                    # Create a single Document object for the entire file
-                    documents.append(
-                        Document(
-                            page_content=content,
-                            metadata={
-                                "source": file_path,
-                                "doc_id": os.path.basename(file_path),
-                                "title": os.path.splitext(os.path.basename(file_path))[0]
-                            }
-                        )
-                    )
+                    # Split content into chunks (simple approach - by paragraphs)
+                    paragraphs = [p for p in content.split('\n\n') if p.strip()]
                     
-                    print(f"Processed {file_path}")
+                    # Create Document objects for each paragraph
+                    for paragraph in paragraphs:
+                        if len(paragraph.strip()) > 50:  # Only include substantial paragraphs
+                            documents.append(
+                                Document(
+                                    page_content=paragraph,
+                                    metadata={"source": file_path, "_id": os.path.basename(file_path)}
+                                )
+                            )
+                    
+                    print(f"Processed {file_path}: {len(paragraphs)} paragraphs")
                 except Exception as e:
                     print(f"Error processing {file_path}: {e}")
     
@@ -142,8 +134,11 @@ def create_vector_database_from_text_files(text_dir, collection_name=None):
     
     print(f"Creating vector database with {len(documents)} documents...")
     
-    # Get embeddings directly using the get_embedding function
-    embeddings = [get_embedding(doc.page_content) for doc in documents]
+    # Generate embeddings using HuggingFaceInferenceAPIEmbeddings
+    embeddings = HuggingFaceInferenceAPIEmbeddings(
+        model_name=EMBEDDINGS_MODEL_NAME,
+        api_key=HUGGINGFACE_API_KEY
+    )
     
     # Create a vector database in Qdrant
     qdrant = Qdrant.from_documents(

@@ -1,0 +1,1 @@
+- While some implementations might use alternative field names like "content", "text", or "document", "page_content" has become something of an industry standard in RAG implementations, especially those following LangChain patterns.
